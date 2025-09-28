@@ -4,15 +4,17 @@ import random as random
 from tqdm import tqdm # Para la barra de progreso
 
 class SimplePerceptron:
-    def __init__(self, learning_rate:float):
+    def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.0):
         self.learning_rate = learning_rate
         self.weights = None
         self.bias = None
+        self.epochs = epochs
+        self.epsilon = epsilon
 
     def _step_activation_function(self, x:float) -> int:
         return 1 if x >= 0 else -1
     
-    def train(self, X:np.ndarray, z:np.ndarray, epochs:int=100, epsilon:float=0.0):
+    def train(self, X:np.ndarray, z:np.ndarray):
         """
         Args:
             epochs (int)
@@ -22,7 +24,7 @@ class SimplePerceptron:
         """
         self.weights = [ random.uniform(-0.5,0.5) for _ in range(X.shape[1]) ]
         self.bias = random.uniform(-0.5, 0.5)
-        for _ in tqdm(range(epochs), desc="Training..."):
+        for _ in tqdm(range(self.epochs), desc="Training..."):
             sum_squared_error = 0.0
             for x_idx, x_i in enumerate(X):
                 # Calculate weighted sum
@@ -41,5 +43,5 @@ class SimplePerceptron:
                 sum_squared_error += error**2
 
             mean_squared_error = sum_squared_error / 2
-            convergence = True if mean_squared_error < epsilon else False
+            convergence = True if mean_squared_error < self.epsilon else False
             if convergence: break
