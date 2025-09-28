@@ -57,6 +57,6 @@ def update(frame):
 ani = animation.FuncAnimation(fig, update, frames=len(history), interval=50, repeat=False)
 
 # Guardar como .mp4 o .gif si quieres
-# ani.save("decision_boundary.mp4", writer="ffmpeg", fps=30)
+ani.save("decision_boundary.mp4", writer="ffmpeg", fps=30)
 
-plt.show()
+#plt.show()
