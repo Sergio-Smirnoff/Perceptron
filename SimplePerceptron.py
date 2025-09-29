@@ -11,7 +11,7 @@ class SimplePerceptron:
         self.epochs = epochs
         self.epsilon = epsilon
 
-    def _step_activation_function(self, x:float) -> int:
+    def _step_activation_function(self, x: float) -> int:
         return 1 if x >= 0 else -1
     
     def train(self, X:np.ndarray, z:np.ndarray):
@@ -23,36 +23,49 @@ class SimplePerceptron:
             z (list of int): expected outputs.
         """
         log_file = open("training_log.txt", "w")  
-        self.weights = [ random.uniform(-0.5,0.5) for _ in range(len(X[0])) ]
+        self.weights = np.array([random.uniform(-0.5, 0.5) for _ in range(len(X[0]))])
         self.bias = random.uniform(-0.5, 0.5)
-        print(f'Initial weights: {self.weights}, Initial bias: {self.bias}, Learning rate: {self.learning_rate}, Epochs: {self.epochs}, Epsilon: {self.epsilon} ')
-        for _ in tqdm(range(self.epochs), desc="Training..."):
+        
+        for epoch in tqdm(range(self.epochs), desc="Training..."):
             sum_squared_error = 0.0
+            
+            # Acumular gradientes
+            weight_gradients = np.zeros_like(self.weights)
+            bias_gradient = 0.0
+            
             for x_idx, x_i in enumerate(X):
                 # Calculate weighted sum
-                sum = np.dot(x_i, self.weights) + self.bias
-
-                # Compute activation
-                output = self._step_activation_function(sum)
-
-                # Update weights and bias
-                for w_idx, w_i in enumerate(self.weights):
-                    self.weights[w_idx] = w_i + self.learning_rate * (z[x_idx] - output) * x_i[w_idx]
-                self.bias = self.bias + self.learning_rate * (z[x_idx] - output)
+                weighted_sum = np.dot(x_i, self.weights) + self.bias
                 
-                # Log weights dynamically (works for any N)
-                log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f}\n")
-
+                # Compute activation
+                output = self._step_activation_function(weighted_sum)
+                
                 # Calculate error
                 error = z[x_idx] - output
                 sum_squared_error += error**2
-
-            mean_squared_error = sum_squared_error / 2
-            convergence = True if mean_squared_error < self.epsilon else False
-            if convergence: break
-        print(f"Training finished")
+                
+                # Acumular gradientes
+                weight_gradients += error * x_i
+                bias_gradient += error
+            
+            # Actualizar parámetros una vez por época
+            self.weights += self.learning_rate * weight_gradients
+            self.bias += self.learning_rate * bias_gradient
+            
+            # Log una vez por época
+            log_file.write(f"{self.weights[0]},{self.weights[1]},{self.bias}\n")
+            
+            # Calcular MSE correctamente
+            mean_squared_error = sum_squared_error / len(X)
+            convergence = mean_squared_error < self.epsilon
+            
+            if convergence: 
+                break
+                
+        print(f"Training finished after {epoch + 1} epochs")
         print(f"Convergence was {'reached' if convergence else 'not reached'}")
-        print(f"Bias={self.bias}")
+        print(f"Final weights: {self.weights}")
+        print(f"Final bias: {self.bias}")
         log_file.close()
 
     def predict(self, input:np.ndarray) -> int:
