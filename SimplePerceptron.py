@@ -25,6 +25,7 @@ class SimplePerceptron:
         log_file = open("training_log.txt", "w")  
         self.weights = [ random.uniform(-0.5,0.5) for _ in range(len(X[0])) ]
         self.bias = random.uniform(-0.5, 0.5)
+        print(f'Initial weights: {self.weights}, Initial bias: {self.bias}, Learning rate: {self.learning_rate}, Epochs: {self.epochs}, Epsilon: {self.epsilon} ')
         for _ in tqdm(range(self.epochs), desc="Training..."):
             sum_squared_error = 0.0
             for x_idx, x_i in enumerate(X):
@@ -39,7 +40,8 @@ class SimplePerceptron:
                     self.weights[w_idx] = w_i + self.learning_rate * (z[x_idx] - output) * x_i[w_idx]
                 self.bias = self.bias + self.learning_rate * (z[x_idx] - output)
                 
-                log_file.write(f"{self.weights[0]},{self.weights[1]},{self.bias}\n")
+                # Log weights dynamically (works for any N)
+                log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f}\n")
 
                 # Calculate error
                 error = z[x_idx] - output
