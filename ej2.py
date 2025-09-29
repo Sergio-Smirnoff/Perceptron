@@ -7,19 +7,24 @@ def parse_params(params):
     learn_rate = params["learn_rate"]
     epochs = params["epochs"]
     epsilon = params["epsilon"]
-    return learn_rate, epochs, epsilon
+    input_file = params["input_file"]
+    output_file = params["output_file"]
+    return learn_rate, epochs, epsilon, input_file, output_file
 
 #====Parse CSV Training Data====
 def parse_training_data(file_path):
     df = pd.read_csv(file_path)
-    # Each row is a sample with all its features
-    X = df[['x1', 'x2', 'x3']].values.tolist()  
-    y = df['y'].tolist()
+
+    # Each row is a variable -> support for multivalued functions
+    X = df.iloc[:, :-1].to_numpy(dtype=float)
+
+    #Last column is expected value
+    y = df['y'].to_numpy(dtype=float)
     return X, y
 
 def main():
-    learn_rate, epochs, epsilon = parse_params("../params.json")
-    X, y = parse_training_data("../TP3-ej2-conjunto.csv")
+    learn_rate, epochs, epsilon, input_file, output_file = parse_params("../params.json")
+    X, y = parse_training_data("../" + input_file)
     perceptron = LinearPerceptron(learn_rate, epochs, epsilon)
     perceptron.train(X, y)
 
