@@ -222,3 +222,5 @@ venv/
 *.jpg
 *.jpeg
 *.pdf
+
+training_log.txt

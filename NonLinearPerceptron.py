@@ -11,6 +11,10 @@ def activation_function(x:float) -> float:
     beta = params.get("non_linear_beta", 1.0)
     return 1 / (1 + np.exp(-2 * beta * x))
 
+def activation_derivative(output, beta=1.0):
+    return 2 * beta * output * (1 - output)
+
+
 class NonLinearPerceptron(LinearPerceptron):
     def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.01):
         super().__init__(learning_rate, epochs, epsilon)
@@ -37,8 +41,8 @@ class NonLinearPerceptron(LinearPerceptron):
 
                 # update
                 for j in range(len(self.weights)):
-                    self.weights[j] += self.learning_rate * error * x[j]
-                self.bias += self.learning_rate * error
+                    self.weights[j] += self.learning_rate * error * activation_derivative(output) * x[j]
+                self.bias += self.learning_rate * error * activation_derivative(output)
 
                 log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f}\n")
 
