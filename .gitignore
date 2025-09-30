@@ -214,3 +214,11 @@ env/
 .venv/
 venv/
 
+*.gif
+*/env/
+*/.venv/
+*/venv/
+*.png
+*.jpg
+*.jpeg
+*.pdf
