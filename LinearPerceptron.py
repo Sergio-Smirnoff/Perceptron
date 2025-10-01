@@ -10,7 +10,7 @@ def activation_function(x:float) -> float:
 class LinearPerceptron(SimplePerceptron):
     def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.01):
         super().__init__(learning_rate, epochs, epsilon)
-        # self.step_activation_function = activation_function
+        
 
 
     def train(self, X: np.ndarray, z: np.array):
@@ -50,3 +50,13 @@ class LinearPerceptron(SimplePerceptron):
         print(f"Training finished")
         print(f"Bias={self.bias}")
         log_file.close()
+
+    def predict(self, X: np.ndarray) -> float:
+        """Predict output for given input vector.
+        Args:
+            x array: Input vector.  
+        Returns:
+            float: Predicted output.
+        """
+        linear_output = np.dot(X, self.weights[:-1]) + self.bias
+        return linear_output

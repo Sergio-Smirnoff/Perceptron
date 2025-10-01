@@ -29,6 +29,11 @@ def main():
     perceptron = NonLinearPerceptron(learn_rate, epochs, epsilon)
     perceptron.train(X, y)
 
+    test_inputs = [2, 4, 6, 8, 54, 100, 123, 256, 512, 1024]
+    for x in test_inputs:
+        output = perceptron.predict(np.array([x]))
+        #print(f"result for {input_vec} after training with AND was {output}")
+        print(f"result for {x} after training with XOR was {output}")
 
 if __name__ == "__main__":
     main()

@@ -22,6 +22,8 @@ def main():
         np.array([1, 1])
     ]
     
+
+    
     for input_vec in test_inputs:
         output = perceptron.predict(input_vec)
         #print(f"result for {input_vec} after training with AND was {output}")

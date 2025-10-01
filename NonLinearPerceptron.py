@@ -56,3 +56,13 @@ class NonLinearPerceptron(LinearPerceptron):
         print(f"Training finished")
         print(f"Bias={self.bias}")
         log_file.close()
+
+    def predict(self, x: np.ndarray) -> float:
+        """Predict output for given input vector.
+        Args:
+            x array: Input vector.  
+        Returns:
+            float: Predicted output.
+        """
+        nolinear_output = np.dot(x, self.weights[:-1]) + self.bias
+        return nolinear_output       

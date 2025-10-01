@@ -1,6 +1,8 @@
+import numpy as np
 from LinearPerceptron import LinearPerceptron
 import json
 import pandas as pd
+
 def parse_params(params):
     with open(params) as f:
         params = json.load(f)
@@ -23,10 +25,25 @@ def parse_training_data(file_path):
     return X, y
 
 def main():
-    learn_rate, epochs, epsilon, input_file, output_file = parse_params("../params.json")
-    X, y = parse_training_data("../" + input_file)
+    learn_rate, epochs, epsilon, input_file, output_file = parse_params("params.json")
+    X, y = parse_training_data(input_file)
     perceptron = LinearPerceptron(learn_rate, epochs, epsilon)
     perceptron.train(X, y)
+
+
+    # test_inputs = [2, 4, 6, 8, 54, 100, 123, 256, 512, 1024]
+
+    test_inputs = [
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [4, 5],
+        [5, 6],
+    ]
+    for x in test_inputs:
+        output = perceptron.predict(np.array(x))
+        #print(f"result for {input_vec} after training with AND was {output}")
+        print(f"result for {x} after training with XOR was {output}")
 
 
 if __name__ == "__main__":
