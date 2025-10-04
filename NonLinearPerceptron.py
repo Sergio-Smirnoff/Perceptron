@@ -16,21 +16,16 @@ def activation_derivative(output, beta=1.0):
 
 #TODO verify that normalization is correct. other options: minmax scaling, z-score normalization, tu vieja
 def scale_data(X, y):
-    """Scale data With MINMAX SCALING.
-    Hardcoded for 3 input variables and 1 output variable. >:D"""
-    x1_min=np.min(X[:, 0])
-    x1_max=np.max(X[:, 0])
-    x2_min=np.min(X[:, 1])
-    x2_max=np.max(X[:, 1])
-    x3_min=np.min(X[:, 2])
-    x3_max=np.max(X[:, 2])
-    y_min=np.min(y)
-    y_max=np.max(y)
-    X[:, 0] = (X[:, 0] - x1_min) / (x1_max - x1_min)
-    X[:, 1] = (X[:, 1] - x2_min) / (x2_max - x2_min)
-    X[:, 2] = (X[:, 2] - x3_min) / (x3_max - x3_min)
-    y = (y - y_min) / (y_max - y_min)
+    X = [scale_array(row) for row in X]
+    y = scale_array(y)
     return X, y
+
+def scale_array(array):
+    """Scale array with MINMAX SCALING.
+    Hardcoded for 1D array. >:D"""
+    array_min = np.min(array)
+    array_max = np.max(array)
+    return (array - array_min) / (array_max - array_min)
 
 def descale_data(y, y_min, y_max):
     """Descale data with MINMAX SCALING.
@@ -91,6 +86,10 @@ class NonLinearPerceptron(LinearPerceptron):
         Returns:
             float: Predicted output.
         """
-        X, _ = scale_data(x, np.array([0]))
-        nonlinear_output = np.dot(X, self.weights[:-1]) + self.bias
-        return descale_data(activation_function(nonlinear_output), 0, 1)
+        
+        """Predice para un único vector x de tamaño 3, usando los min/max del TRAIN."""
+
+        xs = scale_array(x)         # usa min/max del TRAIN
+        y_scaled = activation_function(np.dot(xs, self.weights) + self.bias)
+        y_pred = descale_data(y_scaled, 0, 1)    # vuelve al rango original de y
+        return float(y_pred)
