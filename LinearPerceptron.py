@@ -50,11 +50,11 @@ class LinearPerceptron(SimplePerceptron):
         print(f"Bias={self.bias}")
         log_file.close()
 
-    def predict(self, X: np.ndarray) -> bool:
+    def predict(self, X: np.ndarray) -> float:
         """Predict output for given input vector.
         Args:
             x array: Input vector.  
         Returns:
             bool: Predicted class (True or False).
-        """
-        return np.dot(X, self.weights) + self.bias > self.threshold
+        """ 
+        return np.dot(X, self.weights) + self.bias

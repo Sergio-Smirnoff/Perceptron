@@ -14,6 +14,28 @@ def activation_function(x:float) -> float:
 def activation_derivative(output, beta=1.0):
     return 2 * beta * output * (1 - output)
 
+#TODO verify that normalization is correct. other options: minmax scaling, z-score normalization, tu vieja
+def scale_data(X, y):
+    """Scale data With MINMAX SCALING.
+    Hardcoded for 3 input variables and 1 output variable. >:D"""
+    x1_min=np.min(X[:, 0])
+    x1_max=np.max(X[:, 0])
+    x2_min=np.min(X[:, 1])
+    x2_max=np.max(X[:, 1])
+    x3_min=np.min(X[:, 2])
+    x3_max=np.max(X[:, 2])
+    y_min=np.min(y)
+    y_max=np.max(y)
+    X[:, 0] = (X[:, 0] - x1_min) / (x1_max - x1_min)
+    X[:, 1] = (X[:, 1] - x2_min) / (x2_max - x2_min)
+    X[:, 2] = (X[:, 2] - x3_min) / (x3_max - x3_min)
+    y = (y - y_min) / (y_max - y_min)
+    return X, y
+
+def descale_data(y, y_min, y_max):
+    """Descale data with MINMAX SCALING.
+    Hardcoded for 1 output variable. >:D"""
+    return y * (y_max - y_min) + y_min
 
 class NonLinearPerceptron(LinearPerceptron):
     def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.01):
@@ -29,6 +51,11 @@ class NonLinearPerceptron(LinearPerceptron):
         log_file = open("training_log.txt", "w")  
         self.weights = [ random.uniform(-0.5,0.5) for _ in range(len(X[0])) ]
         self.bias = random.uniform(-0.5, 0.5)
+
+        #======== SCALE DATA ========
+        #MEGA IMPORTANTE
+        X, z = scale_data(X, z)
+
         for epoch in tqdm(range(self.epochs), desc="Training..."):
             sum_squared_error = 0.0
 
@@ -64,5 +91,6 @@ class NonLinearPerceptron(LinearPerceptron):
         Returns:
             float: Predicted output.
         """
-        nolinear_output = np.dot(x, self.weights[:-1]) + self.bias
-        return nolinear_output       
+        X, _ = scale_data(x, np.array([0]))
+        nonlinear_output = np.dot(X, self.weights[:-1]) + self.bias
+        return descale_data(activation_function(nonlinear_output), 0, 1)
