@@ -67,44 +67,7 @@ def test_perceptron(learn_rate, epochs, epsilon, X: np.ndarray, y: np.ndarray):
             print(f"Input: {x_test}, Predicted: {y_pred}, Expected: {y_test}")
     return y_pred
 
-def opt_t():
-
-    learn_rate = 0.01
-    epochs = 100
-    input_file = "TP3-ej2-conjunto.csv"
-
-    X, y = parse_training_data(input_file)
-   
-    candidate_thresholds = np.linspace(y.min(), y.max(), 100)
-
-    best_acc=-1
-    best_thresh=None
-
-    X_train, y_train, X_test, y_test = split_dataset(X, y)
-
-    for threshold in tqdm(candidate_thresholds, desc="Finding Best T"):
-        y_train_bin = np.where(y_train > threshold, 1, 0)
-        y_test_bin = np.where(y_test > threshold, 1, 0)
-
-        perceptron = ClassifierPerceptron(learn_rate, epochs)
-
-        perceptron.train(X_train, y_train_bin)
-
-        y_pred = perceptron.predict(X_test)
-
-        accuracy = np.mean(y_pred == y_test_bin)
-
-        if accuracy > best_acc:
-            best_acc = accuracy
-            best_thresh = threshold
-
-    print(f"Optimal T found: {best_thresh:.4f}")
-    print(f"Optimal accuracy achieved: {best_acc * 100:.2f}%")
-
-
-
 if __name__ == "__main__":
-    #  opt_t()
     main()
 
 
