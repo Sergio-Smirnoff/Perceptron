@@ -8,10 +8,9 @@ def activation_function(x:float) -> float:
     return x
 
 class LinearPerceptron(SimplePerceptron):
-    def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.01):
+    def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.01, threshold:float=0.5):
         super().__init__(learning_rate, epochs, epsilon)
-        
-
+        self.threshold = threshold
 
     def train(self, X: np.ndarray, z: np.array):
         """Train linear perceptron with given training set and expected outputs.
@@ -51,12 +50,11 @@ class LinearPerceptron(SimplePerceptron):
         print(f"Bias={self.bias}")
         log_file.close()
 
-    def predict(self, X: np.ndarray) -> float:
+    def predict(self, X: np.ndarray) -> bool:
         """Predict output for given input vector.
         Args:
             x array: Input vector.  
         Returns:
-            float: Predicted output.
+            bool: Predicted class (True or False).
         """
-        linear_output = np.dot(X, self.weights[:-1]) + self.bias
-        return linear_output
+        return np.dot(X, self.weights) + self.bias > self.threshold
