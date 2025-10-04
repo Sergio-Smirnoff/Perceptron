@@ -1,3 +1,4 @@
+# NonLinearPerceptron.py
 import numpy as np
 import random
 from tqdm import tqdm
@@ -5,65 +6,99 @@ from tqdm import tqdm
 def scale_array(array):
     array_min = np.min(array, axis=0)
     array_max = np.max(array, axis=0)
-    scaled = (array - array_min) / (array_max - array_min)
+    denom = (array_max - array_min)
+    denom[denom == 0] = 1e-9
+    scaled = (array - array_min) / denom
     return scaled, array_min, array_max
 
 def descale_y(y_scaled, y_min, y_max):
     return y_scaled * (y_max - y_min) + y_min
 
 def activation_function(x, beta=1.0):
-    return 1 / (1 + np.exp(-2 * beta * x))
+    # logistic(2*beta*x)
+    return 1.0 / (1.0 + np.exp(-2.0 * beta * x))
 
 def activation_derivative(output, beta=1.0):
-    return 2 * beta * output * (1 - output)
-
+    # d/dx logistic(2b x) = 2b * output * (1-output)
+    return 2.0 * beta * output * (1.0 - output)
 
 class NonLinearPerceptron:
-    def __init__(self, learning_rate=0.01, epochs=100, epsilon=0.01, beta=1.0):
+    def __init__(self, learning_rate=0.01, epochs=100, epsilon=1e-6, beta=1.0):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.epsilon = epsilon
         self.beta = beta
         self.weights = None
         self.bias = None
-
+        # scalers (set on train)
         self.X_min = None
         self.X_max = None
         self.y_min = None
         self.y_max = None
+        self.history = []
 
-    def train(self, X, y):
+    def train(self, X, y, verbose=False):
+        X = np.asarray(X, dtype=float)
+        y = np.asarray(y, dtype=float)
+
         X_scaled, self.X_min, self.X_max = scale_array(X)
         y_min, y_max = np.min(y), np.max(y)
-        self.y_min, self.y_max = y_min, y_max
-        y_scaled = (y - y_min) / (y_max - y_min)  # escala 0-1 para cálculo de gradiente
+        self.y_min, self.y_max = float(y_min), float(y_max)
+        denom_y = (y_max - y_min) if (y_max - y_min) != 0 else 1e-9
+        y_scaled = (y - y_min) / denom_y
 
         n_features = X.shape[1]
-        self.weights = np.array([random.uniform(-0.5,0.5) for _ in range(n_features)])
-        self.bias = random.uniform(-0.5, 0.5)
+        rng = np.random.RandomState()
+        self.weights = rng.uniform(-0.5, 0.5, size=n_features)
+        self.bias = float(rng.uniform(-0.5, 0.5))
 
-        for epoch in tqdm(range(self.epochs), desc="Training"):
+        self.history = []
+        for epoch in tqdm(range(self.epochs), desc="Training", disable=not verbose):
             mse = 0.0
+            # online / SGD update
             for xi, yi in zip(X_scaled, y_scaled):
                 linear_output = np.dot(xi, self.weights) + self.bias
-                output = linear_output
+                output = activation_function(linear_output, self.beta)
 
                 error = yi - output
+                delta = error * activation_derivative(output, self.beta)
+
+                # updates
+                self.weights += self.learning_rate * delta * xi
+                self.bias += self.learning_rate * delta
+
                 mse += error**2
 
-                # actualizar pesos
-                self.weights += self.learning_rate * error * xi
-                self.bias += self.learning_rate * error
-
             mse /= len(X_scaled)
+            self.history.append(mse)
+
+            if epoch % max(1, self.epochs // 10) == 0 and verbose:
+                print(f"Epoch {epoch+1}/{self.epochs} MSE={mse:.6f}")
+
             if mse < self.epsilon:
-                print(f"Converged at epoch {epoch+1}")
+                if verbose:
+                    print(f"Converged at epoch {epoch+1} (mse {mse:.6g})")
                 break
 
-        print(f"Training finished. Bias final: {self.bias:.4f}")
+        if verbose:
+            print(f"Training finished. Bias final: {self.bias:.6f}")
 
     def predict(self, x):
-        x_scaled = (x - self.X_min) / (self.X_max - self.X_min)
-        y_scaled = np.dot(x_scaled, self.weights) + self.bias
+        x = np.asarray(x, dtype=float)
+        single = False
+        if x.ndim == 1:
+            x = x.reshape(1, -1)
+            single = True
+
+        denom = (self.X_max - self.X_min)
+        denom[denom == 0] = 1e-9
+        x_scaled = (x - self.X_min) / denom
+
+        linear = x_scaled.dot(self.weights) + self.bias
+        y_scaled = activation_function(linear, self.beta)
         y_pred = descale_y(y_scaled, self.y_min, self.y_max)
-        return y_pred
+
+        y_pred = y_pred.flatten()
+        return y_pred[0] if single else y_pred
+
+
