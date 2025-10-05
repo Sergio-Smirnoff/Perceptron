@@ -82,8 +82,12 @@ class MulticapaDeep:
 
         Args:
             x (np.ndarray): Vector de entrada original
+
             z_expected (float): Valor esperado
+                z = [expected_l1(), expected_l2()]
+
             activations (list): Salidas de cada capa (del forward pass)
+                    act = [activation_l1(), activation_l2()]
 
         Returns:
             tuple: (gradientes_pesos, gradientes_biases, error)
@@ -98,7 +102,8 @@ class MulticapaDeep:
         if isinstance(output, np.ndarray) and len(output) == 1:
             output = output[0]
 
-        error = z_expected - output
+        expected_l2 = z_expected[-1] #TODO check
+        error = expected_l2 - output
 
         # Delta de la capa de salida
         delta = error * self._sigmoid_derivative(output)
