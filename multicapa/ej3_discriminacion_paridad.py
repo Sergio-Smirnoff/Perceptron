@@ -162,16 +162,16 @@ class ParityMultyPerceptron:
             self.weights[i] += self.learning_rate * grad_weights[i]
             self.biases[i] += self.learning_rate * grad_biases[i]
 
-    def train(self, bit_matrix: np.ndarray, z):
+    def train(self, numbers_list: np.ndarray, z):
         """
         Entrenar la red neuronal multicapa.
 
         Args:
-            bit_matrix (np.ndarray): Conjunto de entradas
+            numbers_list (np.ndarray): Conjunto de entradas
             z (np.ndarray): Conjunto de salidas esperadas
         """
         if self.optimization_mode == "descgradient":
-            self.train_desceding_gradient(bit_matrix, z)
+            self.train_desceding_gradient(numbers_list, z)
         else:
             raise NotImplementedError(f"Método de optimización '{self.optimization_mode}' no implementado.")
 
