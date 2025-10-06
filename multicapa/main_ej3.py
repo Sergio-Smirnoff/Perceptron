@@ -55,8 +55,8 @@ def main():
         print("Usando archivo:", input_file)
 
         X, y_digits = load_digits_flat(input_file)
-        N, D = X.shape
-        print(f"Cargados {N} dígitos. Cada entrada tiene {D} características (35).")
+        # N, D = X.shape
+        print(f"Cargados {len(X)} dígitos. Cada entrada tiene {X} características (35).")
 
         # Etiquetas de paridad: even -> 1, odd -> -1 (coincide con predict devuelto por la clase)
         y_parity = np.where((y_digits % 2) == 0, 1.0, -1.0).reshape(-1, 1)
