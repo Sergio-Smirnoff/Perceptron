@@ -4,7 +4,7 @@ import traceback
 import numpy as np
 from ej3_discriminacion_paridad import ParityMultyPerceptron
 
-INPUT_PATH = "TP3-ej3-digitos.txt"
+INPUT_PATH = "multicapa/TP3-ej3-digitos.txt"
 OUT_DIR = "outputs_ej3"
 PARITY_OUTFILE = "parity_outputs.txt"
 
@@ -44,7 +44,7 @@ def load_digits_flat(path):
         if len(flat) != 35:
             raise ValueError(f"Bloque {i} tiene {len(flat)} valores (esperaba 35).")
         digits.append(np.array(flat, dtype=float))
-    X = np.vstack(digits)
+    X = digits
     y_digits = np.arange(num_digits)
     return X, y_digits
 
@@ -62,7 +62,8 @@ def main():
         y_parity = np.where((y_digits % 2) == 0, 1.0, -1.0).reshape(-1, 1)
 
         # Instanciar el perceptrón (usa la clase que pegaste arriba)
-        model = ParityMultyPerceptron(learning_rate=LEARNING_RATE, epochs=EPOCHS, epsilon=EPSILON)
+        model = ParityMultyPerceptron(learning_rate=LEARNING_RATE, epochs=EPOCHS, epsilon=EPSILON, 
+                                      layer_one_size=1, layer_two_size=1, optimization_mode="descgradient")
 
         # Entrenar
         print("Iniciando entrenamiento...")

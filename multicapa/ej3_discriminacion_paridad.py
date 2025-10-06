@@ -13,42 +13,55 @@ class ParityMultyPerceptron:
     Arquitectura: 2 entradas -> capa oculta (3 neuronas) -> 1 salida
     """
 
-    def __init__(self, learning_rate: float, epochs: int = 100, epsilon: float = 0.0):
+    def __init__(self, learning_rate: float, epochs: int = 100, epsilon: float = 0.0, 
+                 layer_one_size: int = 1, layer_two_size: int = 10, optimization_mode="descgradient"):
         """
         Args:
             learning_rate (float): Tasa de aprendizaje
             epochs (int): Número de épocas de entrenamiento
             epsilon (float): Error mínimo para convergencia
+
+            optimization modes: {descgradient, momentum, adam}
         """
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.epsilon = epsilon
+        self.optimization_mode = optimization_mode
 
         # Arquitectura de la red: 2 entradas, 3 neuronas ocultas, 1 salida
-        self.layer_one_size = 7
-        self.layer_one_input_size = 5
-        self.layer_two_size = 1
-        self.layer_two_input_size = 7
+        self.layer_one_size = layer_one_size
+        self.layer_two_size = layer_two_size
         self.layer_two_output_size = 1
         self.num_layers = 2
 
 
-        # [[[w1], [w2] , ..., [wn]],[w]]
-        # weights = [
-        #  {[w1, w2, w3], [w1, w2, w3],...,}, 
-        #   [w1l2, w2l2, w3l2]
-        #]
+        INPUT_SIZE = 7*5  # 35
+        #hardcoded for 2 layers
+        # weights = [ 
+        #       [ layer 1
+        #           [w1, w2, ..., w35], ..., [w1, w2, ..., w35]  # for each neuron in layer one
+        #       ], 
+        #       [ layer 2
+        #           [p1, p2, ..., p10]
+        #       ]
+        # ]
         self.weights = [ 
-            np.array([[random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)]]), 
-            np.array([random.uniform(-0.5, 0.5) for _ in range(self.layer_two_input_size)])
-            ]
+            [[random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)] for _ in range(INPUT_SIZE)],  # 35 inputs to layer one
+            [random.uniform(-0.5, 0.5) for _ in range(self.layer_two_size)]]
 
-        self.biases = [ np.array([random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)]), random.uniform(-0.5, 0.5)]
 
-        log.info(f"Red neuronal inicializada: {self.layer_one_size} -> {self.layer_two_input_size} -> {self.layer_two_output_size}")
+        # biases = [
+        #           [b1, b2, ..., b35],  # for layer one
+        #           [B1, B2, ..., B10]   # for layer two
+        # ]
+        self.biases = [ [[random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)]], random.uniform(-0.5, 0.5)]
+
+        log.info(f"Red neuronal inicializada: {INPUT_SIZE} -> {self.layer_one_size} -> {self.layer_two_size} -> {self.layer_two_output_size}")
 
     def _sigmoid(self, x):
-        """Función de activación sigmoide"""
+        """Función de activación sigmoide
+        Rango: (0, 1)
+        """
         return 1 / (1 + np.exp(-np.clip(x, -500, 500)))  # Clip para evitar overflow
 
     def _sigmoid_derivative(self, x):
@@ -56,31 +69,37 @@ class ParityMultyPerceptron:
         return x * (1 - x)
 
     def _tanh(self, x):
-        """Función de activación tangente hiperbólica"""
+        """Función de activación tangente hiperbólica
+        Rango: (-1, 1)
+        """
         return np.tanh(x)
 
     def _tanh_derivative(self, x):
         """Derivada de la función tanh"""
         return 1 - x**2
 
-    def forward_pass(self, bit_matrix):
+    def forward_pass(self, numbers_list):
         """
         Propagación hacia adelante por TODAS las capas.
 
         Args:
-            bit_matrix (np.ndarray): Matriz de entrada (batch_size, input_size)
+            numbers_list: lista arrays 1D - representan los numeros
+                input = [f1, f2, f3, f4, f5, f6, f7]  (7x5)
+            se asume que ya esta aplanada a array 1D
 
         Returns:
-            list: Lista con salidas de cada capa [h1, h2, ..., hN, y]
+            list: Lista con salidas de cada capa [h1, h2, ..., hN, o]
+            las capas que se componen de multiples neuronas son listas
+            act = [[activation_l11(), activation_l12(),....], activation_l2()]
         """
 
         # activations = [ entrada matriz = [7x5] , output-one = [7x1],output-two = [1x1]]
         #act = [f1, f2, f3]
-        activations = [bit_matrix]  # Guardar activación de cada capa (empezando por entrada)
+        activations = [numbers_list]  # Guardar activación de cada capa (empezando por entrada)
         #activations = [x, layer1, layer2]
 
         matrix = []
-        current_input = bit_matrix
+        current_input = numbers_list
         for j in range(self.layer_one_size):
             # z = W * a + b
             z = np.dot(current_input[j], self.weights[0][j]) + self.biases[0][j]
@@ -97,19 +116,17 @@ class ParityMultyPerceptron:
 
         return activations
 
-    def backward_pass(self, x, z_expected, activations):
+    def backward_pass(self, z_expected, activations):
         """
         Propagación hacia atrás (backpropagation) por TODAS las capas.
         Usa regla de la cadena para calcular gradientes.
 
         Args:
-            x (np.ndarray): Vector de entrada original
-
             z_expected (float): Valor esperado
                 z = [expected_l1(), expected_l2()]
 
             activations (list): Salidas de cada capa (del forward pass)
-                    act = [[activation_l11(), activation_l12(),....], activation_l2()]
+                    act = [input_original, [activation_l11(), activation_l12(),....], activation_l2()]
 
         Returns:
             tuple: (gradientes_pesos, gradientes_biases, error)
@@ -172,12 +189,26 @@ class ParityMultyPerceptron:
             bit_matrix (np.ndarray): Conjunto de entradas
             z (np.ndarray): Conjunto de salidas esperadas
         """
+        if self.optimization_mode == "descgradient":
+            self.train_desceding_gradient(self, bit_matrix, z)
+        else:
+            raise NotImplementedError(f"Método de optimización '{self.optimization_mode}' no implementado.")
+
+    def train_desceding_gradient(self, numbers_list: np.ndarray, z):
+        """
+        Entrenar la red neuronal multicapa.
+
+        Args:
+            numbers_list (np.ndarray): matrices de numeros
+            nl = [ [bits_de_1], [bits_de_2], ... ]
+            z (np.ndarray): Conjunto de salidas esperadas
+        """
         log.info(f"Iniciando entrenamiento: {self.epochs} épocas, lr={self.learning_rate}")
 
         # Normalizar salidas de [-1, 1] a [0, 1] para sigmoid
         # z_normalized = (z + 1) / 2
         z_normalized = z/9.0 #TODO check -> normalize by biggest expected value = 9
-
+        
         convergence = False
 
         for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando"):
@@ -187,9 +218,12 @@ class ParityMultyPerceptron:
             batch_grad_w = [np.zeros_like(w) for w in self.weights]
             batch_grad_b = [np.zeros_like(b) for b in self.biases]
 
-            activations = self.forward_pass(bit_matrix)
+            activations = self.forward_pass(numbers_list)
 
-            for x_i, z_i in zip(bit_matrix, z_normalized):
+            for x_i, z_i in zip(numbers_list, z_normalized):
+                #cada x_i es un numero en forma array 1D de bits
+                # z_i son los numeros esperados en la salida
+
                 # 2. Backward pass
                 grad_w, grad_b, error = self.backward_pass(x_i, z_i, activations)
 
@@ -206,7 +240,7 @@ class ParityMultyPerceptron:
             self.update_weights(batch_grad_w, batch_grad_b)
 
             # Calcular MSE
-            mean_squared_error = sum_squared_error / len(bit_matrix)
+            mean_squared_error = sum_squared_error / len(numbers_list)
 
             # Verificar convergencia
             if mean_squared_error < self.epsilon:
@@ -217,7 +251,7 @@ class ParityMultyPerceptron:
             if (epoch + 1) % 1000 == 0:
                 log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mean_squared_error:.6f}")
 
-        final_mse = sum_squared_error / len(bit_matrix)
+        final_mse = sum_squared_error / len(numbers_list)
         log.info(f"Entrenamiento finalizado después de {epoch + 1} épocas")
         log.info(f"Convergencia: {'ALCANZADA' if convergence else 'NO ALCANZADA'}")
         log.info(f"Error cuadrático medio final: {final_mse:.6f}")
@@ -227,7 +261,8 @@ class ParityMultyPerceptron:
         Realizar predicción con la red entrenada.
 
         Args:
-            x (np.ndarray): Vector de entrada
+            x (np.ndarray): Vector de entrada -> es la matriz de bits pasada a array 1D
+            x = [f1, f2, ..., f7]
 
         Returns:
             int: Predicción (1 o -1)
@@ -236,8 +271,8 @@ class ParityMultyPerceptron:
         final_output = activations[-1]
 
         # Si la salida es escalar, tomar el primer elemento
-        if isinstance(final_output, np.ndarray):
-            final_output = final_output[0] if len(final_output) == 1 else final_output
+        # if isinstance(final_output, np.ndarray):
+        #     final_output = final_output[0] if len(final_output) == 1 else final_output
 
         # Convertir de [0,1] a [-1,1]
-        return 1 if final_output >= 0.5 else -1
+        return int(final_output * 10)
