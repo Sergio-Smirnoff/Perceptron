@@ -190,7 +190,7 @@ class ParityMultyPerceptron:
             z (np.ndarray): Conjunto de salidas esperadas
         """
         if self.optimization_mode == "descgradient":
-            self.train_desceding_gradient(self, bit_matrix, z)
+            self.train_desceding_gradient(bit_matrix, z)
         else:
             raise NotImplementedError(f"Método de optimización '{self.optimization_mode}' no implementado.")
 
