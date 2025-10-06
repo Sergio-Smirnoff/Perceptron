@@ -80,39 +80,20 @@ class ParityMultyPerceptron:
 
     def forward_pass(self, numbers_list):
         """
-        Propagación hacia adelante por TODAS las capas.
-
-        Args:
-            numbers_list: lista arrays 1D - representan los numeros
-                input = [f1, f2, f3, f4, f5, f6, f7]  (7x5)
-            se asume que ya esta aplanada a array 1D
-
-        Returns:
-            list: Lista con salidas de cada capa [h1, h2, ..., hN, o]
-            las capas que se componen de multiples neuronas son listas
-            act = [[activation_l11(), activation_l12(),....], activation_l2()]
+        Propagación hacia adelante (matricial).
+        numbers_list: vector 1D de tamaño 35 (bits del número)
         """
+        activations = [numbers_list]
 
-        # activations = [ entrada matriz = [7x5] , output-one = [7x1],output-two = [1x1]]
-        #act = [f1, f2, f3]
-        activations = [numbers_list]  # Guardar activación de cada capa (empezando por entrada)
-        #activations = [x, layer1, layer2]
-
-        matrix = []
-        current_input = numbers_list
-        for j in range(self.layer_one_size):
-            # z = W * a + b
-            z = np.dot(current_input[j], self.weights[0][j]) + self.biases[0][j]
-            # a = σ(z)
-            activation = self._sigmoid(z)
-            matrix.append(activation)
-
-        activations.append(matrix)
-        current_input = matrix
+        # Capa oculta
+        z1 = np.dot(numbers_list, np.array(self.weights[0])) + np.array(self.biases[0]).flatten()
+        a1 = self._sigmoid(z1)
+        activations.append(a1)
 
         # Capa de salida
-        z = np.dot(current_input, self.weights[1]) + self.biases[1]
-        activations.append(self._sigmoid(z))
+        z2 = np.dot(a1, np.array(self.weights[1])) + self.biases[1]
+        a2 = self._sigmoid(z2)
+        activations.append(a2)
 
         return activations
 
@@ -141,7 +122,7 @@ class ParityMultyPerceptron:
         if isinstance(output, np.ndarray) and len(output) == 1:
             output = output[0]
 
-        expected_l2 = z_expected[-1] #TODO check
+        expected_l2 = z_expected #TODO check
         error = expected_l2 - output
 
         # Delta de la capa de salida
@@ -208,7 +189,7 @@ class ParityMultyPerceptron:
         # Normalizar salidas de [-1, 1] a [0, 1] para sigmoid
         # z_normalized = (z + 1) / 2
         z_normalized = z/9.0 #TODO check -> normalize by biggest expected value = 9
-        
+
         convergence = False
 
         for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando"):
@@ -218,14 +199,15 @@ class ParityMultyPerceptron:
             batch_grad_w = [np.zeros_like(w) for w in self.weights]
             batch_grad_b = [np.zeros_like(b) for b in self.biases]
 
-            activations = self.forward_pass(numbers_list)
 
             for x_i, z_i in zip(numbers_list, z_normalized):
                 #cada x_i es un numero en forma array 1D de bits
                 # z_i son los numeros esperados en la salida
 
+                activations = self.forward_pass(x_i)
+
                 # 2. Backward pass
-                grad_w, grad_b, error = self.backward_pass(x_i, z_i, activations)
+                grad_w, grad_b, error = self.backward_pass(z_i, activations)
 
                 # 3. Acumular gradientes
                 for i in range(self.num_layers - 1):
