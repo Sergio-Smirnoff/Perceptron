@@ -80,6 +80,7 @@ class ParityMultyPerceptron:
 
     def forward_pass(self, number_bit_array):
         """
+<<<<<<< HEAD
         Propagación hacia adelante por TODAS las capas.
 
         Args:
@@ -91,8 +92,14 @@ class ParityMultyPerceptron:
             list: Lista con salidas de cada capa [h1, h2, ..., hN, o]
             las capas que se componen de multiples neuronas son listas
             act = [[activation_l11(), activation_l12(),....], activation_l2()]
+=======
+        Propagación hacia adelante (matricial).
+        numbers_list: vector 1D de tamaño 35 (bits del número)
+>>>>>>> 300db9d7acb512d0dc2c9f843020a00d3d137d04
         """
+        activations = [numbers_list]
 
+<<<<<<< HEAD
         # activations = [ entrada matriz = [7x5] , output-one = [7x1],output-two = [1x1]]
         #act = [f1, f2, f3]
         activations = [number_bit_array]  # Guardar activación de cada capa (empezando por entrada)
@@ -109,10 +116,17 @@ class ParityMultyPerceptron:
 
         activations.append(matrix)
         current_input = matrix
+=======
+        # Capa oculta
+        z1 = np.dot(numbers_list, np.array(self.weights[0])) + np.array(self.biases[0]).flatten()
+        a1 = self._sigmoid(z1)
+        activations.append(a1)
+>>>>>>> 300db9d7acb512d0dc2c9f843020a00d3d137d04
 
         # Capa de salida
-        z = np.dot(current_input, self.weights[1]) + self.biases[1]
-        activations.append(self._sigmoid(z))
+        z2 = np.dot(a1, np.array(self.weights[1])) + self.biases[1]
+        a2 = self._sigmoid(z2)
+        activations.append(a2)
 
         return activations
 
@@ -129,9 +143,14 @@ class ParityMultyPerceptron:
         error = y - out
         delta_out = error * self._sigmoid_derivative(out)        # escalar
 
+<<<<<<< HEAD
         # Gradientes capa de salida (formas = pesos reales)
         grad_W2 = a1[0] * delta_out                                 # (H,)
         grad_b2 = delta_out                                      # escalar
+=======
+        expected_l2 = z_expected #TODO check
+        error = expected_l2 - output
+>>>>>>> 300db9d7acb512d0dc2c9f843020a00d3d137d04
 
         # Propagación a capa oculta
         W2 = np.asarray(self.weights[1], dtype=float)            # (H,)
@@ -236,11 +255,18 @@ class ParityMultyPerceptron:
     def train_desceding_gradient(self, numbers_list: np.ndarray, z):
         log.info(f"Iniciando entrenamiento: {self.epochs} épocas, lr={self.learning_rate}")
 
+<<<<<<< HEAD
         # Si tu tarea es paridad 0/1, NO normalices por 9.0. Dejalo como y∈{0,1}.
         # Si estás regresando 0..9 con una sola neurona (no recomendado), entonces:
         z_normalized = z / 9.0
 
         N = len(numbers_list)
+=======
+        # Normalizar salidas de [-1, 1] a [0, 1] para sigmoid
+        # z_normalized = (z + 1) / 2
+        z_normalized = z/9.0 #TODO check -> normalize by biggest expected value = 9
+
+>>>>>>> 300db9d7acb512d0dc2c9f843020a00d3d137d04
         convergence = False
 
         for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando"):
@@ -250,15 +276,25 @@ class ParityMultyPerceptron:
             idxs = np.arange(N)
             np.random.shuffle(idxs)
 
+<<<<<<< HEAD
             for i in idxs:
                 x_i = numbers_list[i]   # xi es un numero en forma array 1D de bits
                 y_i = z_normalized[i]   # para paridad usar y_i = z[i]
+=======
+>>>>>>> 300db9d7acb512d0dc2c9f843020a00d3d137d04
 
                 # Forward por muestra
                 activations = self.forward_pass(x_i)
 
+<<<<<<< HEAD
                 # Backward por muestra
                 grad_w, grad_b, error = self.backward_pass(y_i, activations)
+=======
+                activations = self.forward_pass(x_i)
+
+                # 2. Backward pass
+                grad_w, grad_b, error = self.backward_pass(z_i, activations)
+>>>>>>> 300db9d7acb512d0dc2c9f843020a00d3d137d04
 
                 # Update INMEDIATO (SGD, sin acumulación)
                 self.update_weights(grad_w, grad_b)
