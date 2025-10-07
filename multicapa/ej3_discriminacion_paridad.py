@@ -46,7 +46,7 @@ class ParityMultyPerceptron:
         #       ]
         # ]
         self.weights = [ 
-            [[random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)] for _ in range(INPUT_SIZE)],  # 35 inputs to layer one
+            [[random.uniform(-0.5, 0.5) for _ in range(INPUT_SIZE)] for _ in range(self.layer_one_size)],  # 35 inputs to layer one
             [random.uniform(-0.5, 0.5) for _ in range(self.layer_two_size)]]
 
 
@@ -78,12 +78,12 @@ class ParityMultyPerceptron:
         """Derivada de la función tanh"""
         return 1 - x**2
 
-    def forward_pass(self, numbers_list):
+    def forward_pass(self, number_bit_array):
         """
         Propagación hacia adelante por TODAS las capas.
 
         Args:
-            numbers_list: lista arrays 1D - representan los numeros
+            number_bit_array: array 1D - representa los numeros
                 input = [f1, f2, f3, f4, f5, f6, f7]  (7x5)
             se asume que ya esta aplanada a array 1D
 
@@ -95,14 +95,14 @@ class ParityMultyPerceptron:
 
         # activations = [ entrada matriz = [7x5] , output-one = [7x1],output-two = [1x1]]
         #act = [f1, f2, f3]
-        activations = [numbers_list]  # Guardar activación de cada capa (empezando por entrada)
+        activations = [number_bit_array]  # Guardar activación de cada capa (empezando por entrada)
         #activations = [x, layer1, layer2]
 
         matrix = []
-        current_input = numbers_list
+        current_input = number_bit_array
         for j in range(self.layer_one_size):
             # z = W * a + b
-            z = np.dot(current_input[j], self.weights[0][j]) + self.biases[0][j]
+            z = np.dot(np.array(current_input), self.weights[0][j]) + self.biases[0][j]
             # a = σ(z)
             activation = self._sigmoid(z)
             matrix.append(activation)
@@ -116,56 +116,33 @@ class ParityMultyPerceptron:
 
         return activations
 
-    def backward_pass(self, z_expected, activations):
+    def backward_pass(self, y_expected, activations):
         """
-        Propagación hacia atrás (backpropagation) por TODAS las capas.
-        Usa regla de la cadena para calcular gradientes.
-
-        Args:
-            z_expected (float): Valor esperado
-                z = [expected_l1(), expected_l2()]
-
-            activations (list): Salidas de cada capa (del forward pass)
-                    act = [input_original, [activation_l11(), activation_l12(),....], activation_l2()]
-
-        Returns:
-            tuple: (gradientes_pesos, gradientes_biases, error)
+        y_expected: escalar (por ej. 0/1 para paridad o tu valor normalizado)
+        activations: [x, a1, a2] como devuelve forward_pass
         """
-        # Inicializar listas para gradientes
-        grad_weights = [None] * (self.num_layers - 1)
-        grad_biases = [None] * (self.num_layers - 1)
+        x, a1, out = activations                 # x:(35,), a1:(H,), out: escalar
+        y = float(y_expected)
+        out = float(out)
 
-        # Paso 1: Error en la capa de salida
-        output = activations[-1]
-        # Asegurar que sean escalares si la salida es de tamaño 1
-        if isinstance(output, np.ndarray) and len(output) == 1:
-            output = output[0]
+        # error y delta de salida
+        error = y - out
+        delta_out = error * self._sigmoid_derivative(out)        # escalar
 
-        expected_l2 = z_expected[-1] #TODO check
-        error = expected_l2 - output
+        # Gradientes capa de salida (formas = pesos reales)
+        grad_W2 = a1[0] * delta_out                                 # (H,)
+        grad_b2 = delta_out                                      # escalar
 
-        # Delta de la capa de salida
-        delta = error * self._sigmoid_derivative(output)
+        # Propagación a capa oculta
+        W2 = np.asarray(self.weights[1], dtype=float)            # (H,)
+        delta_hidden = (W2 * delta_out) * self._sigmoid_derivative(a1[0])  # (H,)
 
-        # Paso 2: Backpropagation - iterar hacia atrás desde la última capa
-        for layer in range(self.num_layers - 2, -1, -1):
-            # Activación de la capa anterior
-            prev_activation = activations[layer]
+        # Gradientes capa oculta
+        grad_W1 = np.outer(delta_hidden, x)                      # (H, 35)
+        grad_b1 = delta_hidden                                   # (H,)
 
-            # Calcular gradientes para esta capa
-            # ∂E/∂W = δ * a_(prev)^T
-            # Asegurar que delta sea array para operaciones vectoriales
-            delta_array = np.atleast_1d(delta)
-            grad_weights[layer] = np.outer(prev_activation, delta_array)
-            # ∂E/∂b = δ
-            grad_biases[layer] = delta_array
-
-            # Si no es la primera capa, propagar error hacia atrás
-            if layer > 0:
-                # δ_(l-1) = (W_l^T · δ_l) ⊙ σ'(a_(l-1))
-                # Propagar error multiplicando por pesos transpuestos
-                delta = np.dot(self.weights[layer], delta_array) * self._sigmoid_derivative(prev_activation)
-
+        grad_weights = [grad_W1, grad_W2]
+        grad_biases  = [grad_b1, grad_b2]
         return grad_weights, grad_biases, error
 
 
@@ -181,7 +158,7 @@ class ParityMultyPerceptron:
             self.weights[i] += self.learning_rate * grad_weights[i]
             self.biases[i] += self.learning_rate * grad_biases[i]
 
-    def train(self, numbers_list: np.ndarray, z):
+    def train(self, numbers_list: np.ndarray, z: np.ndarray):
         """
         Entrenar la red neuronal multicapa.
 
@@ -194,78 +171,124 @@ class ParityMultyPerceptron:
         else:
             raise NotImplementedError(f"Método de optimización '{self.optimization_mode}' no implementado.")
 
-    def train_desceding_gradient(self, numbers_list: np.ndarray, z):
-        """
-        Entrenar la red neuronal multicapa.
+    # def train_desceding_gradient(self, numbers_list: np.ndarray, z):
+    #     """
+    #     Entrenar la red neuronal multicapa.
 
-        Args:
-            numbers_list (np.ndarray): matrices de numeros
-            nl = [ [bits_de_1], [bits_de_2], ... ]
-            z (np.ndarray): Conjunto de salidas esperadas
-        """
+    #     Args:
+    #         numbers_list (np.ndarray): matrices de numeros
+    #         nl = [ [bits_de_1], [bits_de_2], ... ]
+    #         z (np.ndarray): Conjunto de salidas esperadas
+    #     """
+    #     log.info(f"Iniciando entrenamiento: {self.epochs} épocas, lr={self.learning_rate}")
+
+    #     # Normalizar salidas de [-1, 1] a [0, 1] para sigmoid
+    #     # z_normalized = (z + 1) / 2
+    #     z_normalized = z/9.0 #TODO check -> normalize by biggest expected value = 9
+        
+    #     convergence = False
+
+    #     for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando"):
+    #         sum_squared_error = 0.0
+
+    #         # Acumular gradientes para batch update
+    #         batch_grad_w = [np.zeros_like(w) for w in self.weights]
+    #         batch_grad_b = [np.zeros_like(b) for b in self.biases]
+
+    #         activations = self.forward_pass(numbers_list)
+
+    #         for x_i, z_i in zip(numbers_list, z_normalized):
+    #             #cada x_i es un numero en forma array 1D de bits
+    #             # z_i es el numero correspondiente - valor esperado
+
+    #             # 2. Backward pass
+    #             grad_w, grad_b, error = self.backward_pass(z_i, activations)
+
+    #             # 3. Acumular gradientes
+    #             for i in range(self.num_layers - 1):
+    #                 batch_grad_w[i] += grad_w[i]
+    #                 batch_grad_b[i] += grad_b[i]
+
+    #             # Asegurar que error sea escalar para la suma
+    #             error_scalar = float(error) if isinstance(error, (np.ndarray, np.generic)) else error
+    #             sum_squared_error += error_scalar**2
+
+    #         # 4. Actualizar pesos con gradientes acumulados
+    #         self.update_weights(batch_grad_w, batch_grad_b)
+
+    #         # Calcular MSE
+    #         mean_squared_error = sum_squared_error / len(numbers_list)
+
+    #         # Verificar convergencia
+    #         if mean_squared_error < self.epsilon:
+    #             convergence = True
+    #             log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mean_squared_error:.6f}")
+    #             break
+
+    #         if (epoch + 1) % 1000 == 0:
+    #             log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mean_squared_error:.6f}")
+
+    #     final_mse = sum_squared_error / len(numbers_list)
+    #     log.info(f"Entrenamiento finalizado después de {epoch + 1} épocas")
+    #     log.info(f"Convergencia: {'ALCANZADA' if convergence else 'NO ALCANZADA'}")
+    #     log.info(f"Error cuadrático medio final: {final_mse:.6f}")
+
+    def train_desceding_gradient(self, numbers_list: np.ndarray, z):
         log.info(f"Iniciando entrenamiento: {self.epochs} épocas, lr={self.learning_rate}")
 
-        # Normalizar salidas de [-1, 1] a [0, 1] para sigmoid
-        # z_normalized = (z + 1) / 2
-        z_normalized = z/9.0 #TODO check -> normalize by biggest expected value = 9
-        
+        # Si tu tarea es paridad 0/1, NO normalices por 9.0. Dejalo como y∈{0,1}.
+        # Si estás regresando 0..9 con una sola neurona (no recomendado), entonces:
+        z_normalized = z / 9.0
+
+        N = len(numbers_list)
         convergence = False
 
         for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando"):
             sum_squared_error = 0.0
 
-            # Acumular gradientes para batch update
-            batch_grad_w = [np.zeros_like(w) for w in self.weights]
-            batch_grad_b = [np.zeros_like(b) for b in self.biases]
+            # Mezcla de índices para SGD
+            idxs = np.arange(N)
+            np.random.shuffle(idxs)
 
-            activations = self.forward_pass(numbers_list)
+            for i in idxs:
+                x_i = numbers_list[i]   # xi es un numero en forma array 1D de bits
+                y_i = z_normalized[i]   # para paridad usar y_i = z[i]
 
-            for x_i, z_i in zip(numbers_list, z_normalized):
-                #cada x_i es un numero en forma array 1D de bits
-                # z_i son los numeros esperados en la salida
+                # Forward por muestra
+                activations = self.forward_pass(x_i)
 
-                # 2. Backward pass
-                grad_w, grad_b, error = self.backward_pass(x_i, z_i, activations)
+                # Backward por muestra
+                grad_w, grad_b, error = self.backward_pass(y_i, activations)
 
-                # 3. Acumular gradientes
-                for i in range(self.num_layers - 1):
-                    batch_grad_w[i] += grad_w[i]
-                    batch_grad_b[i] += grad_b[i]
+                # Update INMEDIATO (SGD, sin acumulación)
+                self.update_weights(grad_w, grad_b)
 
-                # Asegurar que error sea escalar para la suma
-                error_scalar = float(error) if isinstance(error, (np.ndarray, np.generic)) else error
-                sum_squared_error += error_scalar**2
+                sum_squared_error += float(error) ** 2
 
-            # 4. Actualizar pesos con gradientes acumulados
-            self.update_weights(batch_grad_w, batch_grad_b)
+            mse = sum_squared_error / N
 
-            # Calcular MSE
-            mean_squared_error = sum_squared_error / len(numbers_list)
-
-            # Verificar convergencia
-            if mean_squared_error < self.epsilon:
+            if mse < self.epsilon:
                 convergence = True
-                log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mean_squared_error:.6f}")
+                log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mse:.6f}")
                 break
 
-            if (epoch + 1) % 1000 == 0:
-                log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mean_squared_error:.6f}")
+            if (epoch + 1) % 100 == 0:
+                log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mse:.6f}")
 
-        final_mse = sum_squared_error / len(numbers_list)
         log.info(f"Entrenamiento finalizado después de {epoch + 1} épocas")
         log.info(f"Convergencia: {'ALCANZADA' if convergence else 'NO ALCANZADA'}")
-        log.info(f"Error cuadrático medio final: {final_mse:.6f}")
+        log.info(f"Error cuadrático medio final: {mse:.6f}")
 
     def predict(self, x):
         """
         Realizar predicción con la red entrenada.
 
         Args:
-            x (np.ndarray): Vector de entrada -> es la matriz de bits pasada a array 1D
-            x = [f1, f2, ..., f7]
+            x : lista de arrays 1D - representan los numeros
+            x = [array_0, array_1, ..., array_9]  (7x5 cada uno)
 
         Returns:
-            int: Predicción (1 o -1)
+            int: Digito predicho {0, 1, ..., 9}
         """
         activations = self.forward_pass(x)
         final_output = activations[-1]

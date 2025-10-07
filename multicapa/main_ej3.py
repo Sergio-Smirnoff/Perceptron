@@ -43,7 +43,7 @@ def load_digits_flat(path):
             flat.extend([int(x) for x in parts])
         if len(flat) != 35:
             raise ValueError(f"Bloque {i} tiene {len(flat)} valores (esperaba 35).")
-        digits.append(np.array(flat, dtype=float))
+        digits.append(np.array(flat, dtype=int))
     X = digits
     y_digits = np.arange(num_digits)
     return X, y_digits
@@ -56,10 +56,13 @@ def main():
 
         X, y_digits = load_digits_flat(input_file)
         # N, D = X.shape
-        print(f"Cargados {len(X)} dígitos. Cada entrada tiene {X} características (35).")
+        for i in range(len(X)):
+            print(f'Dígito {i}: {X[i]}')
 
         # Etiquetas de paridad: even -> 1, odd -> -1 (coincide con predict devuelto por la clase)
-        y_parity = np.where((y_digits % 2) == 0, 1.0, -1.0).reshape(-1, 1)
+        # y_parity = np.where((y_digits % 2) == 0, 1.0, -1.0).reshape(-1, 1)
+
+        expected_output = y_digits # digits
 
         # Instanciar el perceptrón (usa la clase que pegaste arriba)
         model = ParityMultyPerceptron(learning_rate=LEARNING_RATE, epochs=EPOCHS, epsilon=EPSILON, 
@@ -67,31 +70,18 @@ def main():
 
         # Entrenar
         print("Iniciando entrenamiento...")
-        model.train(X, y_parity)
+        model.train(X, expected_output)
         print("Entrenamiento finalizado.")
 
         # Predecir: para cada muestra usamos model.forward_pass para obtener la salida cruda
         preds_label = []
-        preds_raw = []
-        for i in range(N):
-            xi = X[i]
+        for i in range(len(X)):
+            xi = X[i] #xi es la matriz de bits de cada digito
+            
             try:
-                acts = model.forward_pass(xi)
-                raw_out = acts[-1]
-            except Exception:
-                # si forward_pass falla por la forma de entrada, intentamos pasar como vector fila
-                try:
-                    acts = model.forward_pass(xi.reshape(1, -1))
-                    raw_out = acts[-1]
-                except Exception:
-                    raw_out = None
-            # Si el método predict está disponible (devuelve 1/-1), lo usamos
-            try:
-                pred_label = model.predict(xi)
+                pred_label = model.predict(xi) #TODO estamos prediciendo con los mismos valores que usamos para entrenar
             except Exception:
                 pred_label = None
-
-            preds_raw.append(raw_out)
             preds_label.append(pred_label)
 
         # Crear directorio y escribir archivo de salida
@@ -99,24 +89,9 @@ def main():
         out_path = os.path.join(OUT_DIR, PARITY_OUTFILE)
         with open(out_path, "w") as f:
             f.write("digit\texpected_parity\tpred_label\tpred_raw\n")
-            for i in range(N):
-                expected = int(y_parity[i, 0])
+            for i in range(len(X)):
+                expected = int(expected_output[i])
                 pred_l = preds_label[i]
-                raw = preds_raw[i]
-                # normalizar representación de 'raw' para escribir
-                raw_str = ""
-                try:
-                    if raw is None:
-                        raw_str = "None"
-                    elif isinstance(raw, np.ndarray):
-                        # convertir a lista y truncar si largo
-                        raw_list = raw.tolist()
-                        raw_str = ",".join(f"{float(x):.6f}" for x in np.ravel(raw_list))
-                    else:
-                        raw_str = str(raw)
-                except Exception:
-                    raw_str = repr(raw)
-                f.write(f"{i}\t{expected}\t{pred_l}\t{raw_str}\n")
 
         print(f"Resultados guardados en: {out_path}")
 
