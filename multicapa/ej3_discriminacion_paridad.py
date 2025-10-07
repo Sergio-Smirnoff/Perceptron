@@ -54,8 +54,11 @@ class ParityMultyPerceptron:
         #           [b1, b2, ..., b35],  # for layer one
         #           [B1, B2, ..., B10]   # for layer two
         # ]
-        self.biases = [ [[random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)]], random.uniform(-0.5, 0.5)]
-
+# Crea un vector simple (forma (H,)), NO una matriz de 1xH
+        self.biases = [
+            np.random.uniform(-0.5, 0.5, self.layer_one_size), 
+            np.random.uniform(-0.5, 0.5)
+        ]
         log.info(f"Red neuronal inicializada: {INPUT_SIZE} -> {self.layer_one_size} -> {self.layer_two_size} -> {self.layer_two_output_size}")
 
     def _sigmoid(self, x):
@@ -79,40 +82,17 @@ class ParityMultyPerceptron:
         return 1 - x**2
 
     def forward_pass(self, number_bit_array):
-        """
-        Propagación hacia adelante por TODAS las capas.
-
-        Args:
-            number_bit_array: array 1D - representa los numeros
-                input = [f1, f2, f3, f4, f5, f6, f7]  (7x5)
-            se asume que ya esta aplanada a array 1D
-
-        Returns:
-            list: Lista con salidas de cada capa [h1, h2, ..., hN, o]
-            las capas que se componen de multiples neuronas son listas
-            act = [[activation_l11(), activation_l12(),....], activation_l2()]
-        """
-
-        # activations = [ entrada matriz = [7x5] , output-one = [7x1],output-two = [1x1]]
-        #act = [f1, f2, f3]
-        activations = [number_bit_array]  # Guardar activación de cada capa (empezando por entrada)
-        #activations = [x, layer1, layer2]
-
-        matrix = []
-        current_input = number_bit_array
-        for j in range(self.layer_one_size):
-            # z = W * a + b
-            z = np.dot(np.array(current_input), self.weights[0][j]) + self.biases[0][j]
-            # a = σ(z)
-            activation = self._sigmoid(z)
-            matrix.append(activation)
-
-        activations.append(matrix)
-        current_input = matrix
-
+        activations = [np.array(number_bit_array)]
+        
+        # Capa oculta
+        z1 = np.dot(self.weights[0], activations[0]) + self.biases[0]
+        a1 = self._sigmoid(z1)
+        activations.append(a1)
+        
         # Capa de salida
-        z = np.dot(current_input, self.weights[1]) + self.biases[1]
-        activations.append(self._sigmoid(z))
+        z2 = np.dot(self.weights[1], a1) + self.biases[1]
+        out = self._sigmoid(z2)
+        activations.append(out)
 
         return activations
 

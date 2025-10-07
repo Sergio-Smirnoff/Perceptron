@@ -66,7 +66,7 @@ def main():
 
         # Instanciar el perceptrón (usa la clase que pegaste arriba)
         model = ParityMultyPerceptron(learning_rate=LEARNING_RATE, epochs=EPOCHS, epsilon=EPSILON, 
-                                      layer_one_size=1, layer_two_size=1, optimization_mode="descgradient")
+                                      layer_one_size=5, layer_two_size=5, optimization_mode="descgradient")
 
         # Entrenar
         print("Iniciando entrenamiento...")
