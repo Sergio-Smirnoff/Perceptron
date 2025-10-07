@@ -223,6 +223,10 @@ class ParityMultyPerceptron:
         z_normalized = z / 9.0
 
         N = len(numbers_list)
+        # Normalizar salidas de [-1, 1] a [0, 1] para sigmoid
+        # z_normalized = (z + 1) / 2
+        z_normalized = z/9.0 #TODO check -> normalize by biggest expected value = 9
+
         convergence = False
 
         for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando"):
@@ -235,11 +239,15 @@ class ParityMultyPerceptron:
             for i in idxs:
                 x_i = numbers_list[i]   # xi es un numero en forma array 1D de bits
                 y_i = z_normalized[i]   # para paridad usar y_i = z[i]
-
                 # Forward por muestra
                 activations = self.forward_pass(x_i)
 
                 # Backward por muestra
+                grad_w, grad_b, error = self.backward_pass(y_i, activations)
+
+                activations = self.forward_pass(x_i)
+
+                # 2. Backward pass
                 grad_w, grad_b, error = self.backward_pass(y_i, activations)
 
                 # Update INMEDIATO (SGD, sin acumulación)

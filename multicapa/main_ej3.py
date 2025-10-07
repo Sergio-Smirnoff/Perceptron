@@ -4,28 +4,31 @@ import traceback
 import numpy as np
 from ej3_discriminacion_paridad import ParityMultyPerceptron
 
-INPUT_PATH = "multicapa/TP3-ej3-digitos.txt"
+# ==================== CONFIG ====================
+INPUT_PATH = "TP3-ej3-digitos.txt"
 OUT_DIR = "outputs_ej3"
-PARITY_OUTFILE = "parity_outputs.txt"
+DIGITS_OUTFILE = "digits_outputs.txt"
 
 LEARNING_RATE = 0.1
-EPOCHS = 1000
-EPSILON = 1e-6
+EPOCHS = 50000
+EPSILON = 1e-4
+LAYER_ONE_SIZE = 10
+LAYER_TWO_SIZE = 10
+# =================================================
 
 def find_input_file():
-    # intenta rutas por defecto y luego argv[1]
+    """Busca el archivo de entrada."""
     if os.path.exists(INPUT_PATH):
         return INPUT_PATH
     else:
-        print("'TP3-ej3-digitos.txt' no está")
+        print(f"'{INPUT_PATH}' no está en el directorio actual.")
         sys.exit(1)
-
 
 
 def load_digits_flat(path):
     """
-    Lee el archivo en bloques de 7 líneas x 5 columnas (0/1).
-    Retorna X: ndarray (N_digitos, 35) y y_digits (0..N-1)
+    Lee el archivo en bloques de 7x5 (0/1).
+    Retorna X (N_digitos, 35) y etiquetas y_digits (0..N-1).
     """
     with open(path, "r") as f:
         raw_lines = [line.strip() for line in f.readlines() if line.strip() != ""]
@@ -36,7 +39,7 @@ def load_digits_flat(path):
     num_digits = len(raw_lines) // 7
     digits = []
     for i in range(num_digits):
-        block = raw_lines[i*7:(i+1)*7]
+        block = raw_lines[i * 7:(i + 1) * 7]
         flat = []
         for row in block:
             parts = [p for p in row.split() if p in ("0", "1")]
@@ -54,6 +57,7 @@ def main():
         input_file = find_input_file()
         print("Usando archivo:", input_file)
 
+        # === Cargar datos ===
         X, y_digits = load_digits_flat(input_file)
         # N, D = X.shape
         for i in range(len(X)):
@@ -84,9 +88,9 @@ def main():
                 pred_label = None
             preds_label.append(pred_label)
 
-        # Crear directorio y escribir archivo de salida
+        # === Guardar resultados ===
         os.makedirs(OUT_DIR, exist_ok=True)
-        out_path = os.path.join(OUT_DIR, PARITY_OUTFILE)
+        out_path = os.path.join(OUT_DIR, DIGITS_OUTFILE)
         with open(out_path, "w") as f:
             f.write("digit\texpected_parity\n")
             for i in range(len(X)):
@@ -98,7 +102,7 @@ def main():
 
         print(f"Resultados guardados en: {out_path}")
 
-    except Exception as e:
+    except Exception:
         print("Ocurrió un error en main:")
         traceback.print_exc()
         sys.exit(1)
