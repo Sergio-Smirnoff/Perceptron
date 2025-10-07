@@ -88,10 +88,13 @@ def main():
         os.makedirs(OUT_DIR, exist_ok=True)
         out_path = os.path.join(OUT_DIR, PARITY_OUTFILE)
         with open(out_path, "w") as f:
-            f.write("digit\texpected_parity\tpred_label\tpred_raw\n")
+            f.write("digit\texpected_parity\n")
             for i in range(len(X)):
                 expected = int(expected_output[i])
                 pred_l = preds_label[i]
+                f.write(f"{expected}\t{pred_l}\n")
+            print(f"expected: {expected_output}")
+            print("Predicciones (label):", preds_label)
 
         print(f"Resultados guardados en: {out_path}")
 
