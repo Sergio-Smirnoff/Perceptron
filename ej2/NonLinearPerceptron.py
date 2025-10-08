@@ -4,25 +4,23 @@ import random
 from tqdm import tqdm
 
 def scale_array(array):
+    array = np.asarray(array, dtype=float)
     array_min = np.min(array, axis=0)
     array_max = np.max(array, axis=0)
     denom = (array_max - array_min)
     denom[denom == 0] = 1e-9
-    scaled = (array - array_min) / denom
+    scaled = 2 * (array - array_min) / denom -1
     return scaled, array_min, array_max
 
 def descale_y(y_scaled, y_min, y_max):
-    return y_scaled * (y_max - y_min) + y_min
+    return ((y_scaled +1) / 2) * (y_max - y_min) + y_min
 
 def activation_function(x, beta=1.0):
-    # logistic(2*beta*x)
-    return 1.0 / (1.0 + np.exp(-2.0 * beta * x))
-    #return np.tanh(beta*x)
+    return np.tanh(beta * x)
 
 def activation_derivative(output, beta=1.0):
-    # d/dx logistic(2b x) = 2b * output * (1-output)
-    return 2.0 * beta * output * (1.0 - output)
-    #return (1-(np.tanh(output*beta)**2))*beta
+    # d/dx tanh(βx) = β * (1 - tanh^2(βx))
+    return beta * (1.0 - output**2)
 
 class NonLinearPerceptron:
     def __init__(self, learning_rate=0.01, epochs=100, epsilon=1e-36, beta=1.0):
@@ -40,16 +38,14 @@ class NonLinearPerceptron:
         self.history = []
 
     def train(self, X, y, verbose=False):
-        log_file = open("training_log_nonlin.txt", "a") 
-        if self.X_min is None: 
+        log_file = open("training_log_nonlin.txt", "a")
+        if self.X_min is None:
             X = np.asarray(X, dtype=float)
             y = np.asarray(y, dtype=float)
 
             X_scaled, self.X_min, self.X_max = scale_array(X)
-            y_min, y_max = np.min(y), np.max(y)
-            self.y_min, self.y_max = float(y_min), float(y_max)
-            denom_y = (y_max - y_min) if (y_max - y_min) != 0 else 1e-9
-            y_scaled = (y - y_min) / denom_y
+            y_scaled, self.y_min, self.y_max = scale_array(y.reshape(-1, 1))
+            y_scaled = y_scaled.flatten()
 
             self.X_scaled = X_scaled
             self.y_scaled = y_scaled
@@ -98,12 +94,11 @@ class NonLinearPerceptron:
         x = np.asarray(x, dtype=float)
         single = False
         if x.ndim == 1:
-            #x = x.reshape(1, -1)
             single = True
 
         denom = (self.X_max - self.X_min)
         denom[denom == 0] = 1e-9
-        x_scaled, _, _ = scale_array(x)
+        x_scaled = 2 * (x - self.X_min) / denom - 1
 
         linear = x_scaled.dot(self.weights) + self.bias
         y_scaled = activation_function(linear, self.beta)
