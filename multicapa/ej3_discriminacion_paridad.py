@@ -27,8 +27,8 @@ class ParityMultyPerceptron:
         self.epochs = epochs
         self.epsilon = epsilon
         self.optimization_mode = optimization_mode
+        self.alpha = 0.9
 
-        # Arquitectura de la red: 2 entradas, 3 neuronas ocultas, 1 salida
         self.layer_one_size = layer_one_size
         self.layer_two_size = layer_two_size
         self.layer_two_output_size = 1
@@ -36,6 +36,9 @@ class ParityMultyPerceptron:
 
 
         INPUT_SIZE = 7*5  # 35
+        if self.optimization_mode == "momentum":
+            self._initialize_delta_w(INPUT_SIZE)
+
         #hardcoded for 2 layers
         # weights = [ 
         #       [ layer 1
@@ -61,6 +64,25 @@ class ParityMultyPerceptron:
         ]
         log.info(f"Red neuronal inicializada: {INPUT_SIZE} -> {self.layer_one_size} -> {self.layer_two_size} -> {self.layer_two_output_size}")
 
+    def _initialize_delta_w(self, INPUT_SIZE):
+        """
+        Inicializa los delta_w previos en cero.
+        Misma estructura que los pesos.
+        """
+        # Delta W para pesos
+        self.delta_w = [
+            [[0.0 for _ in range(INPUT_SIZE)] for _ in range(self.layer_one_size)],
+            [0.0 for _ in range(self.layer_two_size)]
+        ]
+        
+        # Delta B para biases
+        self.delta_b = [
+            np.zeros(self.layer_one_size),
+            0.0
+        ]
+    
+    log.info("Delta W inicializado para Momentum")
+    
     def _sigmoid(self, x):
         """Función de activación sigmoide
         Rango: (0, 1)
@@ -150,8 +172,91 @@ class ParityMultyPerceptron:
         """
         if self.optimization_mode == "descgradient":
             self.train_desceding_gradient(numbers_list, z)
+        elif self.optimization_mode == "momentum":
+            self.train_momentum(numbers_list, z)
+        elif self.optimization_mode == "adam":
+            self.train_adam(numbers_list, z)
         else:
             raise NotImplementedError(f"Método de optimización '{self.optimization_mode}' no implementado.")
+
+    def train_momentum(self, numbers_list: np.ndarray, z):
+        """
+        Entrena el perceptrón multicapa usando Momentum.
+        
+        Args:
+            numbers_list: Array con los patrones de entrada
+            z: Array con las salidas esperadas
+            alpha: Coeficiente de momentum (típicamente 0.9)
+        """
+        log.info(f"Iniciando entrenamiento MOMENTUM: {self.epochs} épocas, lr={self.learning_rate}, alpha={self.alpha}")
+
+        z_normalized = z / 9.0
+
+        N = len(numbers_list)
+        convergence = False
+
+        for epoch in tqdm.tqdm(range(self.epochs), desc="Entrenando con Momentum"):
+            sum_squared_error = 0.0
+
+            idxs = np.arange(N)
+            np.random.shuffle(idxs)
+
+            for i in idxs:
+                x_i = numbers_list[i]
+                y_i = z_normalized[i]
+
+                activations = self.forward_pass(x_i)
+                grad_w, grad_b, error = self.backward_pass(y_i, activations)
+                self.update_weights_momentum(grad_w, grad_b)
+
+                sum_squared_error += float(error) ** 2
+
+            mse = sum_squared_error / N
+
+            if mse < self.epsilon:
+                convergence = True
+                log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mse:.6f}")
+                break
+
+            if (epoch + 1) % 100 == 0:
+                log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mse:.6f}")
+
+        log.info(f"Entrenamiento finalizado después de {epoch + 1} épocas")
+        log.info(f"Convergencia: {'ALCANZADA' if convergence else 'NO ALCANZADA'}")
+        log.info(f"Error cuadrático medio final: {mse:.6f}")
+
+    def update_weights_momentum(self, grad_w, grad_b):
+        """
+        Momentum: Δw(t+1) = -η·∂E/∂w + α·Δw(t)
+        """
+        # LAYER 1
+        for i in range(self.layer_one_size):
+            for j in range(len(self.weights[0][i])):
+                # Δw(t+1) =η·gradiente + α·Δw(t)
+                new_delta = self.learning_rate * grad_w[0][i][j] + self.alpha * self.delta_w[0][i][j]
+                self.delta_w[0][i][j] = new_delta
+                self.weights[0][i][j] += new_delta
+        
+        for i in range(self.layer_one_size):
+            new_delta = self.learning_rate * grad_b[0][i] + self.alpha * self.delta_b[0][i]
+            self.delta_b[0][i] = new_delta
+            self.biases[0][i] += new_delta
+        
+        # LAYER 2 
+        for i in range(self.layer_two_size):
+            new_delta = self.learning_rate * grad_w[1][i] + self.alpha * self.delta_w[1][i]
+            self.delta_w[1][i] = new_delta
+            self.weights[1][i] += new_delta
+        
+        new_delta = self.learning_rate * grad_b[1] + self.alpha * self.delta_b[1]
+        self.delta_b[1] = new_delta
+        self.biases[1] += new_delta
+    
+    def train_adam(self, numbers_list: np.ndarray, z: np.ndarray):
+        raise NotImplementedError("Método de optimización 'adam' no implementado.")
+    
+
+
 
     # def train_desceding_gradient(self, numbers_list: np.ndarray, z):
     #     """
