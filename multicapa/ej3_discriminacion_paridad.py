@@ -377,9 +377,7 @@ class ParityMultyPerceptron:
         Realizar predicción con la red entrenada.
 
         Args:
-            x : lista de arrays 1D - representan los numeros
-            x = [array_0, array_1, ..., array_9]  (7x5 cada uno)
-
+            x : array 1D - representa el numero
         Returns:
             int: Digito predicho {0, 1, ..., 9}
         """
