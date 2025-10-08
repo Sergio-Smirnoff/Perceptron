@@ -392,3 +392,22 @@ class ParityMultyPerceptron:
 
         # Convertir de [0,1] a [-1,1]
         return int(final_output * 10)
+    
+    def predict_parity(self, x) -> bool:
+        """
+        Realizar predicción de paridad con la red entrenada.
+        Args:
+            x : lista de arrays 1D - representan los numeros
+            x = [array_0, array_1, ..., array_9]  (7x5 cada uno)
+        Returns:
+            bool: True si el número es par, False si es impar.
+        """
+        activations = self.forward_pass(x)
+        final_output = activations[-1]
+
+        # Si la salida es escalar, tomar el primer elemento
+        # if isinstance(final_output, np.ndarray):
+        #     final_output = final_output[0] if len(final_output) == 1 else final_output
+
+        # Convertir de [0,1] a [-1,1]
+        return int(final_output * 10)%2==0
