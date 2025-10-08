@@ -102,6 +102,25 @@ def main():
 
         print(f"Resultados guardados en: {out_path}")
 
+
+        #========Prediccion de Paridad========
+        print("\nPredicción de paridad para dígitos 0-9:")
+        predictions = []
+        for digit in range(10):
+            digit_bits = X[digit]
+            try:
+                parity_pred = model.predict_parity(digit_bits)
+                parity_str = "Par" if parity_pred == True else "Impar"
+                predictions.append((digit, parity_str))
+            except Exception:
+                parity_str = "Error en predicción"
+
+        # Mostrar todas las predicciones al final
+        for digit, parity in predictions:
+            print(f"Dígito {digit}: {parity}")
+        with open("parity.txt", "a") as f:
+            for digit, parity in predictions:
+                f.write(f"Dígito {digit}: {parity}\n")
     except Exception:
         print("Ocurrió un error en main:")
         traceback.print_exc()
