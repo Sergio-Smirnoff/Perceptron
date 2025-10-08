@@ -9,7 +9,7 @@ INPUT_PATH = "TP3-ej3-digitos.txt"
 OUT_DIR = "outputs_ej3"
 DIGITS_OUTFILE = "digits_outputs.txt"
 
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.01
 EPOCHS = 50000
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 10
@@ -70,7 +70,7 @@ def main():
 
         # Instanciar el perceptrón (usa la clase que pegaste arriba)
         model = ParityMultyPerceptron(learning_rate=LEARNING_RATE, epochs=EPOCHS, epsilon=EPSILON, 
-                                      layer_one_size=5, layer_two_size=5, optimization_mode="adam")
+                                      layer_one_size=5, layer_two_size=5, optimization_mode="adam") # descgradient, adam, momentum
 
         # Entrenar
         print("Iniciando entrenamiento...")
