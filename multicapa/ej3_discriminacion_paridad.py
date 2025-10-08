@@ -199,7 +199,7 @@ class ParityMultyPerceptron:
             self.weights[i] += self.learning_rate * np.array(grad_weights[i])
             self.biases[i] += self.learning_rate * np.array(grad_biases[i])
 
-    def train(self, numbers_list: np.ndarray, z):
+    def train(self, numbers_list: np.ndarray, z) -> float:
         """
         Entrena el perceptrón usando el modo de optimización especificado.
         """
@@ -252,6 +252,7 @@ class ParityMultyPerceptron:
                 log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mse:.6f}")
 
         self._log_training_end(epoch + 1, convergence, mse)
+        return mse
 
     def _log_training_start(self):
         """Logging del inicio del entrenamiento según el modo."""
