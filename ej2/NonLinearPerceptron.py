@@ -17,13 +17,15 @@ def descale_y(y_scaled, y_min, y_max):
 def activation_function(x, beta=1.0):
     # logistic(2*beta*x)
     return 1.0 / (1.0 + np.exp(-2.0 * beta * x))
+    #return np.tanh(beta*x)
 
 def activation_derivative(output, beta=1.0):
     # d/dx logistic(2b x) = 2b * output * (1-output)
     return 2.0 * beta * output * (1.0 - output)
+    #return (1-(np.tanh(output*beta)**2))*beta
 
 class NonLinearPerceptron:
-    def __init__(self, learning_rate=0.01, epochs=100, epsilon=1e-6, beta=1.0):
+    def __init__(self, learning_rate=0.01, epochs=100, epsilon=1e-36, beta=1.0):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.epsilon = epsilon
@@ -38,22 +40,30 @@ class NonLinearPerceptron:
         self.history = []
 
     def train(self, X, y, verbose=False):
-        X = np.asarray(X, dtype=float)
-        y = np.asarray(y, dtype=float)
+        log_file = open("training_log_nonlin.txt", "a") 
+        if self.X_min is None: 
+            X = np.asarray(X, dtype=float)
+            y = np.asarray(y, dtype=float)
 
-        X_scaled, self.X_min, self.X_max = scale_array(X)
-        y_min, y_max = np.min(y), np.max(y)
-        self.y_min, self.y_max = float(y_min), float(y_max)
-        denom_y = (y_max - y_min) if (y_max - y_min) != 0 else 1e-9
-        y_scaled = (y - y_min) / denom_y
+            X_scaled, self.X_min, self.X_max = scale_array(X)
+            y_min, y_max = np.min(y), np.max(y)
+            self.y_min, self.y_max = float(y_min), float(y_max)
+            denom_y = (y_max - y_min) if (y_max - y_min) != 0 else 1e-9
+            y_scaled = (y - y_min) / denom_y
 
-        n_features = X.shape[1]
-        rng = np.random.RandomState()
-        self.weights = rng.uniform(-0.5, 0.5, size=n_features)
-        self.bias = float(rng.uniform(-0.5, 0.5))
+            self.X_scaled = X_scaled
+            self.y_scaled = y_scaled
+            n_features = X.shape[1]
+            rng = np.random.RandomState()
+            self.weights = rng.uniform(-0.5, 0.5, size=n_features)
+            self.bias = float(rng.uniform(-0.5, 0.5))
 
-        self.history = []
+            self.history = []
+        else:
+            X_scaled = self.X_scaled
+            y_scaled = self.y_scaled
         for epoch in tqdm(range(self.epochs), desc="Training", disable=not verbose):
+            log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f},")
             mse = 0.0
             # online / SGD update
             for xi, yi in zip(X_scaled, y_scaled):
@@ -71,6 +81,7 @@ class NonLinearPerceptron:
 
             mse /= len(X_scaled)
             self.history.append(mse)
+            log_file.write(f"{mse}\n")
 
             if epoch % max(1, self.epochs // 10) == 0 and verbose:
                 print(f"Epoch {epoch+1}/{self.epochs} MSE={mse:.6f}")
@@ -87,12 +98,12 @@ class NonLinearPerceptron:
         x = np.asarray(x, dtype=float)
         single = False
         if x.ndim == 1:
-            x = x.reshape(1, -1)
+            #x = x.reshape(1, -1)
             single = True
 
         denom = (self.X_max - self.X_min)
         denom[denom == 0] = 1e-9
-        x_scaled = (x - self.X_min) / denom
+        x_scaled, _, _ = scale_array(x)
 
         linear = x_scaled.dot(self.weights) + self.bias
         y_scaled = activation_function(linear, self.beta)

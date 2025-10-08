@@ -19,11 +19,13 @@ class LinearPerceptron(SimplePerceptron):
             X multidimensional array: Input variables.
             z array: Expected outputs.
         """
-        log_file = open("training_log.txt", "w")  
+        log_file = open("training_log_lin.txt", "w")  
         self.weights = [ random.uniform(-0.5,0.5) for _ in range(len(X[0])) ]
         self.bias = random.uniform(-0.5, 0.5)
         for epoch in tqdm(range(self.epochs), desc="Training..."):
             sum_squared_error = 0.0
+            
+            log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f},")
 
             for i, x in enumerate(X):
                 linear_output = np.dot(x, self.weights) + self.bias
@@ -37,10 +39,8 @@ class LinearPerceptron(SimplePerceptron):
                     self.weights[j] += self.learning_rate * error * x[j]
                 self.bias += self.learning_rate * error
 
-                log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f}\n")
-
             mean_squared_error = sum_squared_error / len(X)
-            print(f'MSE at epoch {epoch+1}: {mean_squared_error}')
+            log_file.write(f"{mean_squared_error}\n")
 
             if mean_squared_error < self.epsilon:
                 print(f"Convergence reached at epoch {epoch+1}")

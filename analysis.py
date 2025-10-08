@@ -6,8 +6,12 @@ import matplotlib.animation as animation
 with open("training_log.txt", "r") as f:
     lines = f.readlines()
 
-# Cargar pesos y bias por cada paso
+# Cargar pesos, bias y MSE por cada paso
 history = [list(map(float, line.strip().split(","))) for line in lines]
+
+# Separar en listas individuales
+weights_bias = [entry[:3] for entry in history]
+mses = [entry[3] for entry in history]
 
 # Datos de entrenamiento (AND clásico en [-1, 1])
 X = np.array([
@@ -22,7 +26,7 @@ y = np.array([-1, -1, -1, 1])
 pos = X[y == 1]
 neg = X[y == -1]
 
-# Crear la figura
+# Crear la figura para la animación
 fig, ax = plt.subplots()
 ax.set_xlim(-2, 2)
 ax.set_ylim(-2, 2)
@@ -39,7 +43,7 @@ ax.legend()
 
 # Función que actualiza la animación
 def update(frame):
-    w1, w2, b = history[frame]
+    w1, w2, b = weights_bias[frame]
 
     # Evitar división por cero
     if w2 == 0:
@@ -49,14 +53,20 @@ def update(frame):
     y_vals = -(w1 * x_vals + b) / w2
     line.set_data(x_vals, y_vals)
     ax.set_title(f"Paso {frame + 1}")
-    print(f"Ordenada al origen (x1=0): {-b/w2}")
-    print(f"Bias reportado: {b}")
     return line,
 
 # Crear la animación
-ani = animation.FuncAnimation(fig, update, frames=len(history), interval=1000, repeat=False)
+ani = animation.FuncAnimation(fig, update, frames=len(weights_bias), interval=1, repeat=False)
 
-# Guardar como .mp4 o .gif si quieres
-ani.save("decision_boundary.gif", writer="ffmpeg", fps=50)
+# Guardar como .gif
+ani.save("decision_boundary.gif", writer="ffmpeg", fps=1)
 
-#plt.show()
+# Crear gráfico de MSE vs Epoch
+plt.figure()
+plt.plot(range(1, len(mses) + 1), mses, marker='o', color='green')
+plt.title("MSE vs Época")
+plt.xlabel("Época")
+plt.ylabel("Error cuadrático medio (MSE)")
+plt.grid(True)
+plt.savefig("mse_vs_epoch.png")
+plt.show()

@@ -4,7 +4,7 @@ import random
 from tqdm import tqdm # Para la barra de progreso
 
 class SimplePerceptron:
-    def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=0.0):
+    def __init__(self, learning_rate:float, epochs:int=100, epsilon:float=1e-60):
         self.learning_rate = learning_rate
         self.weights = None
         self.bias = None
@@ -32,6 +32,9 @@ class SimplePerceptron:
             # Acumular gradientes
             weight_gradients = np.zeros_like(self.weights)
             bias_gradient = 0.0
+
+            # Log una vez por época
+            log_file.write(f"{self.weights[0]},{self.weights[1]},{self.bias},")
             
             for x_idx, x_i in enumerate(X):
                 # Calculate weighted sum
@@ -52,12 +55,10 @@ class SimplePerceptron:
             self.weights += self.learning_rate * weight_gradients
             self.bias += self.learning_rate * bias_gradient
             
-            # Log una vez por época
-            log_file.write(f"{self.weights[0]},{self.weights[1]},{self.bias}\n")
-            
             # Calcular MSE correctamente
             mean_squared_error = sum_squared_error / len(X)
             convergence = mean_squared_error < self.epsilon
+            log_file.write(f"{mean_squared_error}\n")
             
             if convergence: 
                 break
