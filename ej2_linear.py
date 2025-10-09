@@ -4,7 +4,7 @@ import json
 import pandas as pd
 from tqdm import tqdm
 from NonLinearPerceptron import NonLinearPerceptron
-from ClassifierPerceptron import ClassifierPerceptron
+from ej2.ClassifierPerceptron import ClassifierPerceptron
 
 def parse_params(params):
     with open(params) as f:

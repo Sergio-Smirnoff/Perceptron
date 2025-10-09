@@ -4,7 +4,6 @@ import json
 import pandas as pd
 from tqdm import tqdm
 from NonLinearPerceptron import NonLinearPerceptron
-from ClassifierPerceptron import ClassifierPerceptron
 import matplotlib.pyplot as plt
 
 def mean_squared_error(y_true, y_pred):

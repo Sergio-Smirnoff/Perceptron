@@ -14,7 +14,6 @@ import os
 def mean_squared_error(y_true, y_pred):
     return np.mean((y_true - y_pred) ** 2)
 
-
 def parse_params(params):
     with open(params) as f:
         params = json.load(f)
@@ -38,22 +37,14 @@ def k_fold_indices(n_samples, k, seed=0):
     folds = np.array_split(indices, k)
     return folds
 
-
-# En ej2_generalization.py
-
-# En ej2_generalization.py
-
 def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, seed=0, verbose=False):
-    # Crear o limpiar el directorio de logs
     if os.path.exists("logs"):
         shutil.rmtree("logs")
     os.makedirs("logs")
 
     folds = k_fold_indices(len(X), k_folds, seed=seed)
     test_errors = []
-    baseline_errors = []
 
-    # tqdm para ver el progreso de los folds
     for i in tqdm(range(k_folds), desc="K-Folds Progress"):
         # 1. Separar datos en train y test
         test_idx = folds[i]
@@ -71,28 +62,22 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
         test_log_path = f"logs/fold_{i}_test_log.txt"
 
         # 4. Entrenar y loguear en una sola llamada
-        # Usamos 'with' para manejar los archivos de forma segura
         with open(train_log_path, 'w') as f_train, open(test_log_path, 'w') as f_test:
             perceptron.train(
                 X_train, y_train,
                 X_test=X_test, y_test=y_test,
                 train_log_file=f_train,
                 test_log_file=f_test,
-                verbose=False  # El verbose del perceptrón no es necesario aquí
+                verbose=False
             )
 
-        # 5. Calcular error final y baseline (sin cambios en esta parte)
+        # 5. Calcular error final
         preds = perceptron.predict(X_test)
         final_mse = np.mean((preds - y_test) ** 2)
         test_errors.append(final_mse)
 
-        # ... (El resto del código de baseline se mantiene igual)
         denom_X = (perceptron.X_max - perceptron.X_min)
         denom_X[denom_X == 0] = 1e-9
-        X_train_scaled = (X_train - perceptron.X_min) / denom_X
-        X_test_scaled = (X_test - perceptron.X_min) / denom_X
-        denom_y = (perceptron.y_max - perceptron.y_min) if (perceptron.y_max - perceptron.y_min) != 0 else 1e-9
-        y_train_scaled = (y_train - perceptron.y_min) / denom_y
 
 
     avg_mse = np.mean(test_errors)
@@ -171,7 +156,7 @@ def main():
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(f"gen_mse_k{k}.png")
-        plt.close()  # Cerramos la figura para evitar warnings
+        plt.close()
 
 
     # === Graficar todas las curvas ===

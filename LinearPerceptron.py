@@ -1,8 +1,8 @@
 import json
-from SimplePerceptron import SimplePerceptron
+from ej2.SimplePerceptron import SimplePerceptron
 import numpy as np
 import random
-from tqdm import tqdm # Para la barra de progreso
+from tqdm import tqdm
 
 def activation_function(x:float) -> float:
     return x
@@ -24,10 +24,7 @@ class LinearPerceptron(SimplePerceptron):
         self.bias = random.uniform(-0.5, 0.5)
         for epoch in tqdm(range(self.epochs), desc="Training..."):
             sum_squared_error = 0.0
-<<<<<<< HEAD:ej2/LinearPerceptron.py
-            
-=======
->>>>>>> multicapa:LinearPerceptron.py
+
             log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f},")
 
             for i, x in enumerate(X):
@@ -44,10 +41,8 @@ class LinearPerceptron(SimplePerceptron):
 
             mean_squared_error = sum_squared_error / len(X)
             log_file.write(f"{mean_squared_error}\n")
-<<<<<<< HEAD:ej2/LinearPerceptron.py
-=======
+
             print(f'MSE at epoch {epoch+1}: {mean_squared_error}')
->>>>>>> multicapa:LinearPerceptron.py
 
             if mean_squared_error < self.epsilon:
                 print(f"Convergence reached at epoch {epoch+1}")
