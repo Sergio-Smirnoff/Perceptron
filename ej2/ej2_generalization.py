@@ -109,43 +109,83 @@ def pad_curves(curves, target_len):
     return padded
 
 def main():
-    k = 14 #[2, 4, 7, 14]
+    ks = [2, 4, 7, 14]
     learn_rate, epochs, epsilon, beta, input_file, _ = parse_params("params.json")
     X, y = parse_training_data(input_file)
 
-    test_perceptron(learn_rate, epochs, epsilon, X, y, beta=beta, k_folds=k, seed=random.randint(0, 10000))
     # Calcular promedio del MSE por época
-    train_curves = []
-    test_curves = []
+    all_avg_trains = []
+    all_avg_tests = []
+    labels = []
 
-    for i in range(k):
-        train_path = f"logs/fold_{i}_log.txt"
-        test_path = f"logs/fold_{i}_test_log.txt"
+    for k in ks:
+        print(f"\n== Ejecutando experimento con k={k} ==")
 
-        # Leer mse de entrenamiento (último valor de cada línea)
-        with open(train_path) as f:
-            train_mse = [float(line.strip().split(',')[-1]) for line in f]
-            train_curves.append(train_mse)
+        # Eliminar y recrear logs para cada k
+        if os.path.exists("logs"):
+            shutil.rmtree("logs")
+        os.makedirs("logs")
 
-        # Leer mse de test
-        with open(test_path) as f:
-            test_mse = [float(line.strip()) for line in f]
-            test_curves.append(test_mse)
+        test_perceptron(learn_rate, epochs, epsilon, X, y, beta=beta, k_folds=k, seed=random.randint(0, 10000))
 
-    # === Promedios ignorando NaNs ===
-    max_len = max(max(len(c) for c in train_curves), max(len(c) for c in test_curves))
-    train_curves = pad_curves(train_curves, max_len)
-    test_curves = pad_curves(test_curves, max_len)
+        train_curves = []
+        test_curves = []
 
-    avg_train = np.nanmean(train_curves, axis=0)
-    avg_test = np.nanmean(test_curves, axis=0)
+        for i in range(k):
+            train_path = f"logs/fold_{i}_log.txt"
+            test_path = f"logs/fold_{i}_test_log.txt"
 
-    # Graficar
-    plt.plot(avg_train, label=f'train [k={k}]')
-    plt.plot(avg_test, label=f'test [k={k}]')
+            # Leer mse de entrenamiento
+            with open(train_path) as f:
+                train_mse = [float(line.strip().split(',')[-1]) for line in f]
+                train_curves.append(train_mse)
+
+            # Leer mse de test
+            with open(test_path) as f:
+                test_mse = [float(line.strip()) for line in f]
+                test_curves.append(test_mse)
+
+        # Pad con NaNs para igualar longitud
+        max_len = max(max(len(c) for c in train_curves), max(len(c) for c in test_curves))
+        train_curves = pad_curves(train_curves, max_len)
+        test_curves = pad_curves(test_curves, max_len)
+
+        avg_train = np.nanmean(train_curves, axis=0)
+        avg_test = np.nanmean(test_curves, axis=0)
+
+        all_avg_trains.append(avg_train)
+        all_avg_tests.append(avg_test)
+        labels.append(k)
+
+        # === Graficar curva individual para este k ===
+        plt.figure(figsize=(8, 5))
+        color = plt.get_cmap('tab10')(ks.index(k) % 10)
+
+        plt.plot(avg_train, label=f"Train [k={k}]", color=color, linestyle='-')
+        plt.plot(avg_test, label=f"Test [k={k}]", color=color, linestyle='--')
+
+        plt.xlabel('Época')
+        plt.ylabel('MSE')
+        plt.title(f'Curva de MSE para k={k}')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f"gen_mse_k{k}.png")
+        plt.close()  # Cerramos la figura para evitar warnings
+
+
+    # === Graficar todas las curvas ===
+    plt.figure(figsize=(10, 6))
+    cmap = plt.get_cmap('tab10')  
+    unique_ks = sorted(set(labels))  
+    color_dict = {k: cmap(i % 10) for i, k in enumerate(unique_ks)}
+    for avg_train, avg_test, k in zip(all_avg_trains, all_avg_tests, labels):
+        color = color_dict[k]
+        plt.plot(avg_train, label=f"Train [k={k}]", color=color, linestyle='--')
+        plt.plot(avg_test, label=f"Test [k={k}]", color=color, linestyle='-')
 
     plt.xlabel('Época')
-    plt.ylabel('MSE entrenamiento')
+    plt.ylabel('MSE')
     plt.title('Promedio de MSE por época')
     plt.legend()
     plt.grid(True)
