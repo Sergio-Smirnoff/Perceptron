@@ -81,7 +81,6 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
         final_mse = np.mean((preds - y_test) ** 2)
         test_errors.append(final_mse)
 
-        # ... (El resto del código de baseline se mantiene igual)
         denom_X = (perceptron.X_max - perceptron.X_min)
         denom_X[denom_X == 0] = 1e-9
     avg_mse = np.mean(test_errors)
