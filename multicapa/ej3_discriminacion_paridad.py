@@ -396,8 +396,7 @@ class ParityMultyPerceptron:
         """
         Realizar predicción de paridad con la red entrenada.
         Args:
-            x : lista de arrays 1D - representan los numeros
-            x = [array_0, array_1, ..., array_9]  (7x5 cada uno)
+            x : un array 1D que representa el número
         Returns:
             bool: True si el número es par, False si es impar.
         """

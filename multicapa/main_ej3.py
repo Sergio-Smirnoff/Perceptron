@@ -19,7 +19,7 @@ PARITY_OUTFILE = "parity_output.txt"
 
 LEARNING_RATE = 0.0001
 EPOCHS = 50000
-EPSILON = 1e-4
+EPSILON = 1e-6
 LAYER_ONE_SIZE = 5
 LAYER_TWO_SIZE = 5
 OPTIMIZATION_MODE = "adam"
@@ -165,10 +165,117 @@ def default_run(
                 parity_accuracy_rate[y%2].append(1 if model.predict_parity(x) else 0)
     return digit_accuracy_rate, parity_accuracy_rate
 
-# variacion de learning rate manteniendo epochs, epsilon y optimizador fijo
-def lr_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate):
-    for lr in [0.1, 0.01, 0.001, 0.0001]:
-        default_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate, learning_rate=lr)
+def lr_run(
+        learning_rate=LEARNING_RATE, 
+        epochs=2000,
+        optimization_mode=OPTIMIZATION_MODE,
+        epsilon=EPSILON
+    ):
+
+    model = ParityMultyPerceptron(
+        learning_rate=learning_rate,
+        epochs=5,
+        epsilon=epsilon,
+        layer_one_size=10,
+        layer_two_size=10,
+        optimization_mode=optimization_mode
+    )
+
+    X, y = load_digits_flat("multicapa/input/TP3-ej3-digitos.txt")
+    print(f"Entrenando con learning rate {learning_rate}...")
+
+    epoch = []
+    accuracies = []
+    
+    # Accuracy inicial (antes de entrenar) - promedio de 20 evaluaciones
+    correct_sum = 0
+    num_evaluations = 20
+    
+    for j in range(num_evaluations):
+        # Predecir para CADA muestra individual
+        correct_count = 0
+        for xi, yi in zip(X, y):
+            result = model.predict_parity(xi)
+            expected_parity = (yi % 2 == 0)
+            if result == expected_parity:
+                correct_count += 1
+        
+        # Calcular el accuracy de esta evaluación
+        eval_accuracy = correct_count / len(X)
+        correct_sum += eval_accuracy
+    
+    # Promedio de las 20 evaluaciones
+    accuracy = correct_sum / num_evaluations
+    epoch.append(0)
+    accuracies.append(accuracy)
+
+    # Entrenar por cada época
+    for ep in range(1, epochs):
+        model.train(X, y)
+        
+        correct_sum = 0
+        for j in range(num_evaluations):
+            correct_count = 0
+            for xi, yi in zip(X, y):
+                result = model.predict_parity(xi)
+                expected_parity = (yi % 2 == 0)
+                if result == expected_parity:
+                    correct_count += 1
+            
+            eval_accuracy = correct_count / len(X)
+            correct_sum += eval_accuracy
+        
+        accuracy = correct_sum / num_evaluations
+        epoch.append(ep*5)
+        accuracies.append(accuracy)
+
+    print(f"Learning rate {learning_rate} completado. Accuracy final: {accuracy:.4f}")
+    return learning_rate, epoch, accuracies
+
+
+def run_single_lr(lr):
+    """Función auxiliar para ejecutar un solo learning rate"""
+    return lr_run(learning_rate=lr)
+
+
+def lr_variation_run():
+    
+    acc_mapper = {
+        0.1: [],
+        0.01: [],
+        0.001: [],
+        0.0001: []
+    }
+
+    epoch_mapper = {
+        0.1: [],
+        0.01: [],
+        0.001: [],
+        0.0001: []
+    }
+    
+    learning_rates = [0.1, 0.01, 0.001, 0.0001]
+    
+    # Usar multiprocessing para ejecutar en paralelo
+    with Pool(processes=min(len(learning_rates), mp.cpu_count())) as pool:
+        results = pool.map(run_single_lr, learning_rates)
+    
+    # Procesar los resultados
+    for lr, epochs, accuracies in results:
+        epoch_mapper[lr] = epochs
+        acc_mapper[lr] = accuracies
+
+    # Plotear
+    plot.figure(figsize=(10, 6))
+    for lr in learning_rates:
+        plot.plot(epoch_mapper[lr], acc_mapper[lr], marker='o', markersize=3, linewidth=2, label=f'LR={lr}')
+    plot.xlabel('Épocas')
+    plot.ylabel('Accuracy (promedio de 20 evaluaciones)')
+    plot.title('Accuracy de Paridad vs Épocas para distintos Learning Rates')
+    plot.grid(True)
+    plot.legend()
+    plot.savefig('multicapa/outputs_ej3/parity_accuracy_vs_epochs_lr_variation.png')
+    plot.show()
 
 def run_single_epoch(args):
     """Función helper para ejecutar un experimento con un número de épocas"""
@@ -248,9 +355,9 @@ def main():
 
         # ======================= RUN =====================
         # default_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate)
-        epochs_variation_run(X_total, y_total)
+        #epochs_variation_run(X_total, y_total)
         # epsilon_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate)
-        # lr_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate)   
+        lr_variation_run()   
             
 
         # Resumen por etiqueta de paridad
