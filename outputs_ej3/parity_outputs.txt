@@ -1,1 +1,0 @@
-digit	expected_parity	pred_label	pred_raw
