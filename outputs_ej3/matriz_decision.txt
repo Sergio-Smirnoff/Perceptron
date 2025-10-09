@@ -1,0 +1,23 @@
+Etiqueta; Predict
+0; 0
+1; 1
+2; 2
+3; 3
+4; 4
+5; 5
+6; 6
+7; 7
+8; 8
+9; 9
+
+Paridad
+0; Par
+1; Impar
+2; Par
+3; Impar
+4; Par
+5; Impar
+6; Par
+7; Impar
+8; Par
+9; Impar

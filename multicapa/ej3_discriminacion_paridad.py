@@ -241,7 +241,7 @@ class ParityMultyPerceptron:
 
                 sum_squared_error += float(error) ** 2
 
-            mse = sum_squared_error / N
+            mse = np.mean(sum_squared_error)
 
             if mse < self.epsilon:
                 convergence = True

@@ -53,7 +53,10 @@ class NonLinearPerceptron:
         self.bias = float(rng.uniform(-0.5, 0.5))
 
         self.history = []
+        log_file = open("training_log_nonlin.txt", "w")
+
         for epoch in tqdm(range(self.epochs), desc="Training", disable=not verbose):
+            
             mse = 0.0
             # online / SGD update
             for xi, yi in zip(X_scaled, y_scaled):
@@ -71,7 +74,7 @@ class NonLinearPerceptron:
 
             mse /= len(X_scaled)
             self.history.append(mse)
-
+            log_file.write(f"{mse}\n")
             if epoch % max(1, self.epochs // 10) == 0 and verbose:
                 print(f"Epoch {epoch+1}/{self.epochs} MSE={mse:.6f}")
 
@@ -79,7 +82,7 @@ class NonLinearPerceptron:
                 if verbose:
                     print(f"Converged at epoch {epoch+1} (mse {mse:.6g})")
                 break
-
+        log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f},")
         if verbose:
             print(f"Training finished. Bias final: {self.bias:.6f}")
 
