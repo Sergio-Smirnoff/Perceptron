@@ -38,6 +38,11 @@ def k_fold_indices(n_samples, k, seed=0):
     folds = np.array_split(indices, k)
     return folds
 
+
+# En ej2_generalization.py
+
+# En ej2_generalization.py
+
 def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, seed=0, verbose=False):
     # Crear o limpiar el directorio de logs
     if os.path.exists("logs"):
@@ -81,13 +86,18 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
         final_mse = np.mean((preds - y_test) ** 2)
         test_errors.append(final_mse)
 
+        # ... (El resto del código de baseline se mantiene igual)
         denom_X = (perceptron.X_max - perceptron.X_min)
         denom_X[denom_X == 0] = 1e-9
+        X_train_scaled = (X_train - perceptron.X_min) / denom_X
+        X_test_scaled = (X_test - perceptron.X_min) / denom_X
+        denom_y = (perceptron.y_max - perceptron.y_min) if (perceptron.y_max - perceptron.y_min) != 0 else 1e-9
+        y_train_scaled = (y_train - perceptron.y_min) / denom_y
+
+
     avg_mse = np.mean(test_errors)
-    avg_baseline = np.mean(baseline_errors)
     print(f"\nPromedio de MSE final en test (perceptrón): {avg_mse:.6f}")
-    print(f"Promedio de MSE final baseline lineal: {avg_baseline:.6f}")
-    return avg_mse, avg_baseline
+    return avg_mse
 
 def pad_curves(curves, target_len):
     padded = []
