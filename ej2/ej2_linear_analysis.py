@@ -86,7 +86,12 @@ def main():
 
         # Entrenamiento Non-Linear
         perceptron = NonLinearPerceptron(learn_rate, 30000, epsilon, beta)
-        perceptron.train(X, y)
+        with open("training_log_nonlin.txt", 'w') as f_train:
+            perceptron.train(
+                X, y,
+                train_log_file=f_train,
+                verbose=False  # El verbose del perceptrón no es necesario aquí
+            )
         mse_nonlin = read_mse_from_log("training_log_nonlin.txt")
         nonlinear_mse_logs[f"Learning Rate={learn_rate}"] = mse_nonlin
 
