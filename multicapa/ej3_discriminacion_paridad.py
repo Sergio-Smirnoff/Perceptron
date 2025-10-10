@@ -55,9 +55,13 @@ class ParityMultyPerceptron:
         #           [p1, p2, ..., p10]
         #       ]
         # ]
+
+        ## N # de neuronas en capa 1, Y # de neuronas en capa 2, 1 neurona en capa de salida
         self.weights = [ 
             [[random.uniform(-0.5, 0.5) for _ in range(INPUT_SIZE)] for _ in range(self.layer_one_size)],  # 35 inputs to layer one
-            [random.uniform(-0.5, 0.5) for _ in range(self.layer_two_size)]]
+            [[random.uniform(-0.5, 0.5) for _ in range(self.layer_one_size)] for _ in range(self.layer_two_size)],# N inputs to layer two
+            [0.0 for _ in range(self.layer_two_size)]  # Y inputs to layer three
+            ] 
 
 
         # biases = [
@@ -67,8 +71,10 @@ class ParityMultyPerceptron:
         # Crea un vector simple (forma (H,)), NO una matriz de 1xH
         self.biases = [
             np.random.uniform(-0.5, 0.5, self.layer_one_size), 
-            np.random.uniform(-0.5, 0.5)
+            np.random.uniform(-0.5, 0.5, self.layer_two_size),
+            random.uniform(-0.5, 0.5)
         ]
+
         log.info(f"Red neuronal inicializada: {INPUT_SIZE} -> {self.layer_one_size} -> {self.layer_two_size} -> {self.layer_two_output_size}")
 
     def _initialize_delta_w(self, INPUT_SIZE):
@@ -79,12 +85,14 @@ class ParityMultyPerceptron:
         # Delta W para pesos
         self.delta_w = [
             [[0.0 for _ in range(INPUT_SIZE)] for _ in range(self.layer_one_size)],
+            [[0.0 for _ in range(self.layer_one_size)] for _ in range(self.layer_two_size)],
             [0.0 for _ in range(self.layer_two_size)]
         ]
         
         # Delta B para biases
         self.delta_b = [
             np.zeros(self.layer_one_size),
+            np.zeros(self.layer_two_size),
             0.0
         ]
     
@@ -98,22 +106,26 @@ class ParityMultyPerceptron:
         # Primer momento (m) - equivalente a momentum
         self.m_w = [
             [[0.0 for _ in range(INPUT_SIZE)] for _ in range(self.layer_one_size)],
+            [[0.0 for _ in range(self.layer_one_size)] for _ in range(self.layer_two_size)],
             [0.0 for _ in range(self.layer_two_size)]
         ]
         
         self.m_b = [
             np.zeros(self.layer_one_size),
+            np.zeros(self.layer_two_size),
             0.0
         ]
         
         # Segundo momento (v) - para adaptar el learning rate
         self.v_w = [
             [[0.0 for _ in range(INPUT_SIZE)] for _ in range(self.layer_one_size)],
+            [[0.0 for _ in range(self.layer_one_size)] for _ in range(self.layer_two_size)],
             [0.0 for _ in range(self.layer_two_size)]
         ]
         
         self.v_b = [
             np.zeros(self.layer_one_size),
+            np.zeros(self.layer_two_size),
             0.0
         ]
         
@@ -143,15 +155,26 @@ class ParityMultyPerceptron:
     def forward_pass(self, number_bit_array):
         activations = [np.array(number_bit_array)]
         
-        # Capa oculta
-        z1 = np.dot(self.weights[0], activations[0]) + self.biases[0]
-        a1 = self._sigmoid(z1)
-        activations.append(a1)
+        matrix = []   # output de total layer 1
+        # Capa oculta 1
+        for i in range(self.layer_one_size):
+            # Producto punto + bias
+            z = np.dot(self.weights[0][i], activations[0]) + self.biases[0][i]
+            a = self._sigmoid(z)
+            matrix.append(a)
+        activations.append(np.array(matrix))
         
+        matrix_2 = []  # output de total layer 2
+        for i in range(self.layer_two_size):
+            z2 = np.dot(self.weights[1][i], activations[1]) + self.biases[1][i]
+            out = self._sigmoid(z2)
+            matrix_2.append(out)
+        activations.append(np.array(matrix_2))
+
         # Capa de salida
-        z2 = np.dot(self.weights[1], a1) + self.biases[1]
-        out = self._sigmoid(z2)
-        activations.append(out)
+        z3 = np.dot(self.weights[2], activations[2]) + self.biases[2]
+        out_final = self._sigmoid(z3)
+        activations.append(np.array(out_final)) # escalar
 
         return activations
 

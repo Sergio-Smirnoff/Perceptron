@@ -17,19 +17,20 @@ OUT_DIR = "outputs_ej3"
 DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
-LEARNING_RATE = 0.0001
-EPOCHS = 50000
-EPSILON = 1e-6
+LEARNING_RATE = 0.01
+EPOCHS = 2000
+EPSILON = 1e-4
 LAYER_ONE_SIZE = 5
 LAYER_TWO_SIZE = 5
-OPTIMIZATION_MODE = "adam"
+OPTIMIZATION_MODE = "descgradient"
 # =================================================
 
 def find_input_file():
     """Busca el archivo de entrada."""
     if os.path.exists(INPUT_PATH):
         return INPUT_PATH
-    else:
+    else: 
+
         print(f"'{INPUT_PATH}' no está en el directorio actual.")
         sys.exit(1)
 
@@ -329,6 +330,37 @@ def epsilon_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy
     for eps in [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]:
         default_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate, epsilon=eps)
 
+
+def neurones_variation_run():
+    X,y = load_digits_flat("multicapa/input/TP3-ej3-digitos.txt")
+    layers = [(5,5), (10,10), (10,5), (15,5), (15,10), (15,15)]
+
+    for layer_one_size, layer_two_size in layers:
+        print(f"Ejecutando con {layer_one_size} neuronas en capa 1 y {layer_two_size} en capa 2...")
+
+        epoch = []
+        msd = []
+
+        for ep in range(EPOCHS):
+            model = ParityMultyPerceptron(
+                learning_rate=LEARNING_RATE,
+                epochs=1,
+                epsilon=EPSILON,
+                layer_one_size=layer_one_size,
+                layer_two_size=layer_two_size,
+            )
+            epoch.append(ep)
+            msd.append(model.train(X, y))
+
+        plot.figure(figsize=(10, 6))
+        plot.plot(epoch, msd, marker='.', markersize=3, linewidth=2, label=f'{layer_one_size} neuronas capa 1, {layer_two_size} capa 2')
+        plot.xlabel('Épocas')
+        plot.ylabel('Error')
+        plot.title(f'Error vs Épocas ({layer_one_size} neuronas capa 1, {layer_two_size} capa 2)')
+        plot.grid(True)
+        plot.legend()
+        plot.savefig(f'multicapa/outputs_ej3/parity_error_vs_epochs_{layer_one_size}_{layer_two_size}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png')
+
 def main():
     try:
         # Limpieza opcional de archivos de salida en este run
@@ -357,7 +389,7 @@ def main():
         # default_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate)
         #epochs_variation_run(X_total, y_total)
         # epsilon_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy_rate)
-        lr_variation_run()   
+        neurones_variation_run()   
             
 
         # Resumen por etiqueta de paridad
