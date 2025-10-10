@@ -1,10 +1,9 @@
 import numpy as np
-from LinearPerceptron import LinearPerceptron
 import json
 import pandas as pd
-from tqdm import tqdm
-from NonLinearPerceptron import NonLinearPerceptron
-from ej2.ClassifierPerceptron import ClassifierPerceptron
+
+from LinearPerceptron import LinearPerceptron
+
 
 def parse_params(params):
     with open(params) as f:
@@ -50,7 +49,7 @@ def split_dataset(X, y, test_ratio=0.5):
     return X_train, y_train, X_test, y_test
 
 def main():
-    learn_rate, epochs, epsilon, input_file, output_file = parse_params("params.json")
+    learn_rate, epochs, epsilon, input_file, output_file = parse_params("ej2/params.json")
     X, y = parse_training_data(input_file)
     y_pred = test_perceptron(learn_rate, epochs, epsilon, X, y)
 

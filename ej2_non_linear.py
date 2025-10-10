@@ -1,72 +1,78 @@
-import json
 import numpy as np
 import pandas as pd
+import json
 from NonLinearPerceptron import NonLinearPerceptron
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import KFold
 
-def parse_params(params):
-    with open(params) as f:
-        params = json.load(f)
-    learn_rate = float(params.get("learn_rate", 0.01))
-    epochs = int(params.get("epochs", 1000))
-    epsilon = float(params.get("epsilon", 1e-6))
-    input_file = params["input_file"]
-    output_file = params.get("output_file", "out.csv")
-    return learn_rate, epochs, epsilon, input_file, output_file
 
-def parse_training_data(file_path):
-    df = pd.read_csv(file_path)
-    # última columna = salida (y)
-    X = df.iloc[:, :-1].to_numpy(dtype=float)
-    y = df.iloc[:, -1].to_numpy(dtype=float)
+def parse_params(params_path="params.json"):
+    with open(params_path) as f:
+        return json.load(f)
+
+
+def parse_training_data(csv_file):
+    df = pd.read_csv(csv_file)
+    X = df.iloc[:, :-1].values
+    y = df.iloc[:, -1].values
     return X, y
 
-def k_fold_indices(n_samples, k, seed=0):
-    rng = np.random.RandomState(seed)
-    indices = rng.permutation(n_samples)
-    folds = np.array_split(indices, k)
-    return folds
 
-def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, seed=0, verbose=False):
-    folds = k_fold_indices(len(X), k_folds, seed=seed)
-    test_errors = []
+def test_perceptron(input_file, learn_rate, epochs, epsilon, beta, k_folds=7, seed=267, verbose=False):
+    X_raw, y_raw = parse_training_data(input_file)
 
-    for i in range(k_folds):
-        test_idx = folds[i]
-        train_idx = np.hstack([folds[j] for j in range(k_folds) if j != i])
+    kf = KFold(n_splits=k_folds, shuffle=True, random_state=seed)
 
-        X_train, y_train = X[train_idx], y[train_idx]
-        X_test, y_test = X[test_idx], y[test_idx]
+    mse_list = []
+    fold_count = 1
 
-        # Inicializar y entrenar el perceptrón
-        perceptron = NonLinearPerceptron(
-            learning_rate=learn_rate, epochs=epochs, epsilon=epsilon, beta=beta
+    for train_idx, test_idx in kf.split(X_raw):
+        print(f"\n=== Fold {fold_count}/{k_folds} ===")
+
+        X_train_raw, X_test_raw = X_raw[train_idx], X_raw[test_idx]
+        y_train, y_test = y_raw[train_idx], y_raw[test_idx]
+
+        x_scaler = MinMaxScaler(feature_range=(-1, 1))
+        X_train_scaled = x_scaler.fit_transform(X_train_raw)
+        X_test_scaled = x_scaler.transform(X_test_raw)
+
+        perc = NonLinearPerceptron(
+            learning_rate=learn_rate,
+            epochs=epochs,
+            epsilon=epsilon,
+            beta=beta,
+            random_seed=seed
         )
-        perceptron.train(X_train, y_train, verbose=False)
+        perc.train(X_train_scaled, y_train, verbose=False)
 
-        # Predicción
-        preds = perceptron.predict(X_test)
-        mse = np.mean((preds - y_test) ** 2)
-        test_errors.append(mse)
+        preds = perc.predict(X_test_scaled)
 
-        # Mostrar algunos ejemplos
-        print(f"\n=== Fold {i+1}/{k_folds} ===")
         print("Input\t\tPredicted\tExpected")
-        for xt, yp, yr in zip(X_test[:5], preds[:5], y_test[:5]):
-            print(f"{np.round(xt,3)}\t{float(yp):.4f}\t{float(yr):.4f}")
-        print(f"MSE (test set): {mse:.6f}")
+        for i in range(min(4, len(X_test_raw))):
+            print(f"{np.round(X_test_raw[i], 3)}\t{float(preds[i]):.4f}\t\t{float(y_test[i]):.4f}")
 
-    avg_mse = np.mean(test_errors)
-    print(f"\nPromedio de MSE en test (perceptrón): {avg_mse:.6f}")
-    return avg_mse
+        mse = np.mean((preds - y_test) ** 2)
+        mse_list.append(mse)
+        print(f"MSE Fold {fold_count}: {mse:.6f}")
+        fold_count += 1
 
-def main():
-    learn_rate, epochs, epsilon, input_file, output_file = parse_params("params.json")
-    X, y = parse_training_data(input_file)
-    avg_mse = test_perceptron(
-        learn_rate, epochs, epsilon, X, y, beta=2.0, k_folds=10, seed=0
-    )
-    print(f"\nError cuadrático medio promedio: {avg_mse:.6f}")
+    print("\n=== Resultados Finales ===")
+    print(f"MSE promedio: {np.mean(mse_list):.6f}")
+    print(f"MSE std: {np.std(mse_list):.6f}")
+    return mse_list
+
 
 if __name__ == "__main__":
-    main()
+    params = parse_params("ej2/params.json")
+    learn_rate = float(params.get("learn_rate", 0.001))
+    epochs = int(params.get("epochs", 2000))
+    epsilon = float(params.get("epsilon", 1e-4))
+    input_file = params.get("input_file", "ej2/TP3-ej2-conjunto.csv")
+    beta = float(params.get("non_linear_beta", 1.0))
+
+    test_perceptron(input_file, learn_rate, epochs, epsilon, beta)
+
+
+
+
 

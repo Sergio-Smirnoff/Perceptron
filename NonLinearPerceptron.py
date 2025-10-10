@@ -1,124 +1,95 @@
-# NonLinearPerceptron.py
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 
-## Funciones auxiliares
-def scale_array(array):
-    array = np.asarray(array, dtype=float)
-    array_min = np.min(array, axis=0)
-    array_max = np.max(array, axis=0)
-    denom = (array_max - array_min)
-    denom[denom == 0] = 1e-9
-    scaled = 2 * (array - array_min) / denom - 1
-    return scaled, array_min, array_max
-
-
-def descale_y(y_scaled, y_min, y_max):
-    return ((y_scaled + 1) / 2) * (y_max - y_min) + y_min
-
-
-def activation_function(x, beta=1.0):
-    return np.tanh(beta * x)
-
-
-def activation_derivative(output, beta=1.0):
-    return beta * (1.0 - output ** 2)
-
-
-## Clase del Perceptrón
 class NonLinearPerceptron:
-    def __init__(self, learning_rate=0.01, epochs=100, epsilon=1e-36, beta=1.0):
+    """
+    Perceptrón no lineal de una neurona con activación tanh.
+    Escala automáticamente y a su vez desescala las salidas.
+    """
+
+    def __init__(self, learning_rate=0.001, epochs=2000, epsilon=1e-6, beta=1.0, random_seed=None):
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.epsilon = epsilon
         self.beta = beta
+        self.random_seed = random_seed
+
         self.weights = None
         self.bias = None
-        self.X_min = None
-        self.X_max = None
-        self.y_min = None
-        self.y_max = None
-        self.history = []
+        self.history_scaled = []
+        self.history_real = []
+        self._yscaler = None
+        self.rng = np.random.RandomState(random_seed)
+        print("seed: {random_seed}".format(random_seed=random_seed))
 
-    def train(self, X, y, X_test=None, y_test=None, train_log_file=None, test_log_file=None, verbose=False):
-        # Escalar datos de entrenamiento y guardar escaladores
-        X_scaled, self.X_min, self.X_max = scale_array(X)
-        y_scaled, self.y_min, self.y_max = scale_array(y.reshape(-1, 1))
-        y_scaled = y_scaled.flatten()
+    def activation_function(self, x):
+        """Función de activación Tangente Hiperbólica."""
+        return np.tanh(self.beta * x)
 
-        # Inicializar pesos y bias
-        n_features = X.shape[1]
-        rng = np.random.RandomState()
-        self.weights = rng.uniform(-0.5, 0.5, size=n_features)
-        self.bias = float(rng.uniform(-0.5, 0.5))
-        self.history = []
+    def train(self, X, y, verbose=False):
+        """Entrena el perceptrón usando el conjunto de datos (X, y)."""
+        n_samples, n_features = X.shape
 
-        # Bucle de entrenamiento principal
-        for epoch in tqdm(range(self.epochs), desc="Training Fold", disable=not verbose, leave=False):
-            # Lógica de entrenamiento para una época
-            mse_scaled = 0.0
-        log_file = open("training_log_nonlin.txt", "w")
+        self.weights = self.rng.randn(n_features)
+        self.bias = self.rng.randn()
 
-        for epoch in tqdm(range(self.epochs), desc="Training", disable=not verbose):
-            
-            mse = 0.0
-            # online / SGD update
-            for xi, yi in zip(X_scaled, y_scaled):
-                linear_output = np.dot(xi, self.weights) + self.bias
-                output = activation_function(linear_output, self.beta)
-                error = yi - output
-                delta = error * activation_derivative(output, self.beta)
+        # Escala los valores de salida 'y' al rango [-1, 1] que maneja tanh
+        self._yscaler = MinMaxScaler(feature_range=(-1, 1))
+        y_scaled = self._yscaler.fit_transform(y.reshape(-1, 1)).ravel()
+
+        prev_mse_scaled = np.inf
+        pbar = tqdm(range(self.epochs), disable=not verbose)
+
+        for epoch in pbar:
+            shuffled_indices = self.rng.permutation(n_samples)
+            for i in shuffled_indices:
+                xi = X[i]
+                target = y_scaled[i]
+
+                linear_output = np.dot(self.weights, xi) + self.bias
+                prediction = self.activation_function(linear_output)
+
+                error = target - prediction
+                derivative = self.beta * (1 - prediction ** 2)
+                delta = error * derivative
+
                 self.weights += self.learning_rate * delta * xi
                 self.bias += self.learning_rate * delta
-                mse_scaled += error ** 2
 
-            mse_scaled /= len(X_scaled)
-            self.history.append(mse_scaled)
+            y_pred_scaled = self.activation_function(np.dot(X, self.weights) + self.bias)
+            mse_scaled = np.mean((y_scaled - y_pred_scaled) ** 2)
+            self.history_scaled.append(mse_scaled)
 
-            # Calcular MSE sobre datos originales sin escalar
-            y_pred_train = self.predict(X)
-            train_mse = np.mean((y - y_pred_train) ** 2)
+            y_pred_real = self._yscaler.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
+            mse_real = np.mean((y - y_pred_real) ** 2)
+            self.history_real.append(mse_real)
 
-            # Escribir en el log de entrenamiento si se pasa
-            if train_log_file:
-                train_log_file.write(f"{train_mse}\n")
-            mse /= len(X_scaled)
-            self.history.append(mse)
-            log_file.write(f"{mse}\n")
-            if epoch % max(1, self.epochs // 10) == 0 and verbose:
-                print(f"Epoch {epoch+1}/{self.epochs} MSE={mse:.6f}")
+            if verbose:
+                pbar.set_description(f"Epoch {epoch + 1}, MSE(real): {mse_real:.6f}")
 
-            # Calcular y escribir en el log de test si se pasa
-            if X_test is not None and y_test is not None and test_log_file:
-                y_pred_test = self.predict(X_test)
-                test_mse = np.mean((y_test - y_pred_test) ** 2)
-                test_log_file.write(f"{test_mse}\n")
-
-            # Condición de corte
-            if mse_scaled < self.epsilon:
+            if abs(prev_mse_scaled - mse_scaled) < self.epsilon:
                 if verbose:
-                    print(f"Convergencia alcanzada en época {epoch + 1}")
+                    print(f"Convergencia alcanzada en epoch {epoch + 1}")
                 break
+            prev_mse_scaled = mse_scaled
 
-        log_file.write(",".join(f"{w:.4f}" for w in self.weights) + f",{self.bias:.4f},")
-        if verbose:
-            print(f"Training finished. Bias final: {self.bias:.6f}")
+        return self
 
-    def predict(self, x):
-        x = np.asarray(x, dtype=float)
-        is_single_item = x.ndim == 1
+    def predict(self, X):
+        """Predice valores para un conjunto de entradas X."""
+        X = np.asarray(X, dtype=float)
+        single_input = X.ndim == 1
+        X_in = X.reshape(1, -1) if single_input else X
 
-        x_input = x.reshape(1, -1) if is_single_item else x
+        linear = np.dot(X_in, self.weights) + self.bias
+        y_scaled = self.activation_function(linear)
 
-        denom = (self.X_max - self.X_min)
-        denom[denom == 0] = 1e-9
-        x_scaled = 2 * (x_input - self.X_min) / denom - 1
+        y_real = self._yscaler.inverse_transform(y_scaled.reshape(-1, 1)).ravel()
+        return float(y_real[0]) if single_input else y_real
 
-        linear = np.dot(x_scaled, self.weights) + self.bias
-        y_scaled = activation_function(linear, self.beta)
-        y_pred = descale_y(y_scaled, self.y_min, self.y_max)
 
-        return y_pred[0] if is_single_item else y_pred
+
 
 
