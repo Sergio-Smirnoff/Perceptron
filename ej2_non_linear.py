@@ -44,9 +44,18 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
         perceptron.train(X_train, y_train, verbose=False)
 
         # Predicción
-        preds = perceptron.predict(X_test)
-        mse = np.mean((preds - y_test) ** 2)
-        test_errors.append(mse)
+        preds=[]
+        mse=0.0
+        for xi, yi in zip(X_train, y_train):
+            y_pred_train = perceptron.predict(xi)
+            train_mse = np.mean((yi - y_pred_train) ** 2)
+
+            #predict([x1, x2, x3])
+
+            print(f"Fold {i+1}/{k_folds} - MSE (train set): {train_mse:.6f}")
+        # preds = perceptron.predict(X_test)
+        # mse = np.mean((preds - y_test) ** 2)
+            test_errors.append(train_mse)
 
         # Mostrar algunos ejemplos
         print(f"\n=== Fold {i+1}/{k_folds} ===")
