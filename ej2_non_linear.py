@@ -43,26 +43,22 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
         )
         perceptron.train(X_train, y_train, verbose=False)
 
-        # Predicción
-        preds=[]
-        mse=0.0
-        for xi, yi in zip(X_train, y_train):
-            y_pred_train = perceptron.predict(xi)
-            train_mse = np.mean((yi - y_pred_train) ** 2)
+        # Evaluar en entrenamiento
+        train_preds = np.array([perceptron.predict(xi) for xi in X_train])
+        train_mse = np.mean((y_train - train_preds) ** 2)
+        print(f"Fold {i+1}/{k_folds} - MSE (train set): {train_mse:.6f}")
 
-            #predict([x1, x2, x3])
-
-            print(f"Fold {i+1}/{k_folds} - MSE (train set): {train_mse:.6f}")
-        # preds = perceptron.predict(X_test)
-        # mse = np.mean((preds - y_test) ** 2)
-            test_errors.append(train_mse)
+        # Evaluar en test
+        preds = np.array([perceptron.predict(xi) for xi in X_test])
+        mse = np.mean((preds - y_test) ** 2)
+        test_errors.append(mse)
 
         # Mostrar algunos ejemplos
         print(f"\n=== Fold {i+1}/{k_folds} ===")
         print("Input\t\tPredicted\tExpected")
         for xt, yp, yr in zip(X_test[:5], preds[:5], y_test[:5]):
             print(f"{np.round(xt,3)}\t{float(yp):.4f}\t{float(yr):.4f}")
-        print(f"MSE (test set): {mse:.6f}")
+        print(f"MSE (test set): {mse:.6f}\n")
 
     avg_mse = np.mean(test_errors)
     print(f"\nPromedio de MSE en test (perceptrón): {avg_mse:.6f}")
