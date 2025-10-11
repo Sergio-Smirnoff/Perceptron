@@ -37,7 +37,7 @@ class ParityMultyPerceptron:
         self.layer_one_size = layer_one_size
         self.layer_two_size = layer_two_size
         self.layer_two_output_size = 1
-        self.num_layers = 2
+        self.num_layers = 3
 
 
         INPUT_SIZE = 7*5  # 35
@@ -179,35 +179,43 @@ class ParityMultyPerceptron:
         return activations
 
     def backward_pass(self, y_expected, activations):
-        x, a1, out = activations  # x:(35,), a1:(H,), out: escalar
+        x, a1, a2, out = activations  # x:(35,), a1:(H,), a2:(H,), out: escalar
         y = float(y_expected)
         out = float(out)
 
         # Convertir a numpy arrays para operaciones vectoriales
         a1 = np.array(a1)
+        a2 = np.array(a2)
         x = np.array(x)
 
         # Error y delta de la capa de salida
         error = y - out
         delta_out = error * self._sigmoid_derivative(out)  # escalar
 
-        # Gradientes de la capa de salida
-        grad_W2 = a1 * delta_out  # Vector (H,)
-        grad_b2 = delta_out      # escalar
+        grad_W3 = a2 * delta_out  # Vector (H2,)
+        grad_b3 = delta_out      # escalar
 
         # Propagación a la capa oculta
-        W2 = np.asarray(self.weights[1], dtype=float)  # (H,)
+        W3 = np.asarray(self.weights[2], dtype=float)  # (H2)
         
         # El delta de la capa oculta es un vector
-        delta_hidden = (W2 * delta_out) * self._sigmoid_derivative(a1)  # Vector (H,)
+        delta_hidden2 = (W3 * delta_out) * self._sigmoid_derivative(a2)  # Vector (H2,)
 
-        # Gradientes de la capa oculta
-        grad_W1 = np.outer(delta_hidden, x)  # Matriz (H, 35)
-        grad_b1 = delta_hidden               # Vector (H,)
+        # Gradientes de la capa oculta 2
+        grad_W2 = np.outer(delta_hidden2, a1)  # Matriz (H2, H1)
+        grad_b2 = delta_hidden2                   # Vector (H2,)
 
-        grad_weights = [grad_W1, grad_W2]
-        grad_biases = [grad_b1, grad_b2]
-        
+        # Propagación a la primera capa oculta
+        W2 = np.asarray(self.weights[1], dtype=float)  # Matriz (H1,)
+
+        delta_hidden1 = np.dot(W2, delta_hidden2) * self._sigmoid_derivative(a1)  # Vector (H1,)
+        # Gradientes de la capa oculta 1
+        grad_W1 = np.outer(delta_hidden1, x)  # Matriz (H1, 35) 
+        grad_b1 = delta_hidden1                # Vector (H1,)
+
+        grad_weights = [grad_W1, grad_W2, grad_W3]
+        grad_biases = [grad_b1, grad_b2, grad_b3]
+
         return grad_weights, grad_biases, error
 
 
