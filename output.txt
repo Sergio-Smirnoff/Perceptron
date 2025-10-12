@@ -1,0 +1,4 @@
+Aciertos por clase (sobre 25 corridas): [10, 0]
+Matriz de confusión (conteos):
+ [[10 15]
+ [25  0]]

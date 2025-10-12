@@ -27,7 +27,7 @@ DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
 LEARNING_RATE = 0.01
-EPOCHS = 2000
+EPOCHS = 10000
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 25
 LAYER_TWO_SIZE = 25
@@ -86,12 +86,81 @@ def k_fold(X_list, y_list, train_k=3, seed=None):
     y_test  = [y_list[i] for i in test_idx]
     return X_train, y_train, X_test, y_test
 
+def confusion_matrix_digits(X_complete, y_complete, perceptron):
+    # 5 corridas de testeo sobre TODO el set (o poné X_test si querés solo test)
+    y_true_all = []
+    y_pred_all = []
+
+    for j in range(5):
+        for i, x in enumerate(X_complete):
+            p = int(perceptron.predict(np.array(x)))  # debe devolver 0..9
+            y_true_all.append(i)                      # etiqueta real (0..9 en ese orden)
+            y_pred_all.append(p)                      # etiqueta predicha
+
+    # Aciertos por dígito (índice = dígito)
+    hits = [0]*10
+    for t, p in zip(y_true_all, y_pred_all):
+        if t == p:
+            hits[t] += 1
+
+    print(f"Aciertos por dígito (sobre {len(y_true_all)//10} corridas): {hits}")
+
+    # Matriz de confusión (conteos)
+    labels = list(range(10))
+    cm = confusion_matrix(y_true_all, y_pred_all, labels=labels)
+    print("Matriz de confusión (conteos):\n", cm)
+
+    # Normalizada por clase real (recall por dígito)
+    cm_norm = confusion_matrix(y_true_all, y_pred_all, labels=labels, normalize='true')
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_norm, display_labels=labels)
+    disp.plot(values_format='.2f', cmap='Blues', colorbar=True)
+    plt.title("Matriz de confusión - normalizada por clase real")
+    plt.xlabel("Predicho")
+    plt.ylabel("Real")
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUT_DIR, "confusion_matrix_digits_normalized.png"))
+
+def confusion_matrix_parity(X_complete, y_complete, perceptron):
+    # 5 corridas de testeo sobre TODO el set (o poné X_test si querés solo test)
+    y_true_all = []
+    y_pred_all = []
+
+    for j in range(5):
+        for i, x in enumerate(X_complete):
+            p = int(perceptron.predict_parity(np.array(x)))  # debe devolver 0 o 1
+            parity = True if (i % 2) == 1 else False          # etiqueta real (0=par, 1=impar)
+            y_true_all.append(parity)
+            y_pred_all.append(p)                      # etiqueta predicha
+
+    # Aciertos por clase (0=par, 1=impar)
+    hits = [0, 0]
+    for t, p in zip(y_true_all, y_pred_all):
+        if t == p:
+            hits[t] += 1
+
+    print(f"Aciertos por clase (sobre {len(y_true_all)//2} corridas): {hits}")
+
+    # Matriz de confusión (conteos)
+    labels = [0, 1]
+    cm = confusion_matrix(y_true_all, y_pred_all, labels=labels)
+    print("Matriz de confusión (conteos):\n", cm)
+
+    # Normalizada por clase real (recall por clase)
+    cm_norm = confusion_matrix(y_true_all, y_pred_all, labels=labels, normalize='true')
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm_norm, display_labels=labels)
+    disp.plot(values_format='.2f', cmap='Blues', colorbar=True)
+    plt.title("Matriz de confusión - normalizada por clase real")
+    plt.xlabel("Predicho")
+    plt.ylabel("Real")
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUT_DIR, f'confusion_matrix_parity_{EPOCHS}.png'))
+
 def main():
     X_complete, y_complete = load_digits_flat(INPUT_PATH)
 
 
     #test group con nro 1 separado
-    X_train, y_train, X_test, y_test = k_fold(X_complete, y_complete, train_k=9, seed=42)
+    X_train, y_train, X_test, y_test = k_fold(X_complete, y_complete, train_k=9, seed=420)
     
     perceptron = ParityMultyPerceptron(
         learning_rate=LEARNING_RATE,
@@ -103,37 +172,9 @@ def main():
     )
     perceptron.train(X_train, y_train)
 
-    #5 epochs de testeo
-    y_true = []
-    y_pred = []
-    for x, y_real in zip(X_test, y_test):
-        p = perceptron.predict(np.array(x))  # np.array por si tu predict espera ndarray
-        y_pred.append(int(p))
-        y_true.append(int(y_real))
+    # confusion_matrix_digits(X_complete, y_complete, perceptron)
 
-    confusion = confusion_matrix(expected, predictions, labels=range(10))
-    print("Matriz de confusión:")
-    print(confusion)
-
-    labels = list(range(10))
-    # --- Gráfico 1: cruda ---
-    disp = ConfusionMatrixDisplay(confusion_matrix=confusion, display_labels=labels)
-    disp.plot(values_format='d')
-    plt.title("Matriz de confusión - dígitos (cruda)")
-    plt.xlabel("Predicho")
-    plt.ylabel("Real")
-    plt.tight_layout()
-    plt.show()
-
-    # --- Gráfico 2: normalizada por fila (recall por clase) ---
-    cm_norm = confusion_matrix(y_true, y_pred, labels=labels, normalize='true')
-    disp2 = ConfusionMatrixDisplay(confusion_matrix=cm_norm, display_labels=labels)
-    disp2.plot(values_format='.2f', cmap='Blues', colorbar=True)
-    plt.title("Matriz de confusión - normalizada por clase real")
-    plt.xlabel("Predicho")
-    plt.ylabel("Real")
-    plt.tight_layout()
-    plt.show()
+    confusion_matrix_parity(X_complete, y_complete, perceptron)
 
 if __name__ == "__main__":
     main()

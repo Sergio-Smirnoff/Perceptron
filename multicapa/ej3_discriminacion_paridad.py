@@ -249,7 +249,7 @@ class ParityMultyPerceptron:
         if self.optimization_mode == "adam":
             self.adam_t = 0
 
-        z_normalized = z / 9.0
+        z_normalized = [z / 9.0 for z in z]
         N = len(numbers_list)
         convergence = False
         
