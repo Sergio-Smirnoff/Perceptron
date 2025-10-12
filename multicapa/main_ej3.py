@@ -18,11 +18,11 @@ DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
 LEARNING_RATE = 0.01
-EPOCHS = 2000
+EPOCHS = 20000
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 5
 LAYER_TWO_SIZE = 5
-OPTIMIZATION_MODE = "descgradient"
+OPTIMIZATION_MODE = "momentum"
 # =================================================
 
 def find_input_file():
@@ -332,14 +332,16 @@ def epsilon_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy
 
 
 def neurones_variation_run():
-    X,y = load_digits_flat("multicapa/input/TP3-ej3-digitos.txt")
-    layers = [(10,5), (5,5), (10,10),  (15,5), (15,10), (15,15)]
+    X, y = load_digits_flat("multicapa/input/TP3-ej3-digitos.txt")
+    layers = [(10,5), (5,5), (10,10), (15,5), (15,10), (15,15)]
 
+    plot.figure(figsize=(12, 7))
+    
     for layer_one_size, layer_two_size in layers:
         print(f"Ejecutando con {layer_one_size} neuronas en capa 1 y {layer_two_size} en capa 2...")
 
-        epoch = []
-        msd = []
+        epochs_list = []
+        msd_list = []
 
         model = ParityMultyPerceptron(
             learning_rate=LEARNING_RATE,
@@ -350,19 +352,28 @@ def neurones_variation_run():
         )
 
         for ep in range(EPOCHS):
+            epochs_list.append(ep)
+            error = model.train(X, y)
+            msd_list.append(error)
 
-            epoch.append(ep)
-            msd.append(model.train(X, y))
+        # Graficar esta configuración
+        plot.plot(
+            epochs_list, 
+            msd_list, 
+            marker='.', 
+            markersize=3, 
+            linewidth=2, 
+            label=f'({layer_one_size}, {layer_two_size})'
+        )
 
-        plot.figure(figsize=(10, 6))
-        plot.plot(epoch, msd, marker='.', markersize=3, linewidth=2, label=f'{layer_one_size} neuronas capa 1, {layer_two_size} capa 2')
-        plot.xlabel('Épocas')
-        plot.ylabel('Error')
-        plot.title(f'Error vs Épocas ({layer_one_size} neuronas capa 1, {layer_two_size} capa 2)')
-        plot.grid(True)
-        plot.legend()
-        plot.savefig(f'multicapa/outputs_ej3/parity_error_vs_epochs_{layer_one_size}_{layer_two_size}_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png')
-
+    plot.xlabel('Épocas')
+    plot.ylabel('Error')
+    plot.title('Error vs Épocas - Comparación de arquitecturas')
+    plot.grid(True)
+    plot.legend()
+    plot.tight_layout()
+    plot.savefig(f'multicapa/outputs_ej3/parity_error_comparison_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.png')
+    plot.show()  # opcional, para ver el gráfico
 def main():
     try:
         # Limpieza opcional de archivos de salida en este run
