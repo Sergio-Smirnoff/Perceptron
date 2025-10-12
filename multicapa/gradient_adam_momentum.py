@@ -17,7 +17,7 @@ OUT_DIR = "outputs_ej3"
 DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
-LEARNING_RATE = 0.000001
+LEARNING_RATE = 0.01
 EPOCHS = 50000
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 5

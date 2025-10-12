@@ -333,7 +333,7 @@ def epsilon_variation_run(X_total, y_total, digit_accuracy_rate, parity_accuracy
 
 def neurones_variation_run():
     X,y = load_digits_flat("multicapa/input/TP3-ej3-digitos.txt")
-    layers = [(5,5), (10,10), (10,5), (15,5), (15,10), (15,15)]
+    layers = [(10,5), (5,5), (10,10),  (15,5), (15,10), (15,15)]
 
     for layer_one_size, layer_two_size in layers:
         print(f"Ejecutando con {layer_one_size} neuronas en capa 1 y {layer_two_size} en capa 2...")
@@ -341,14 +341,16 @@ def neurones_variation_run():
         epoch = []
         msd = []
 
+        model = ParityMultyPerceptron(
+            learning_rate=LEARNING_RATE,
+            epochs=1,
+            epsilon=EPSILON,
+            layer_one_size=layer_one_size,
+            layer_two_size=layer_two_size,
+        )
+
         for ep in range(EPOCHS):
-            model = ParityMultyPerceptron(
-                learning_rate=LEARNING_RATE,
-                epochs=1,
-                epsilon=EPSILON,
-                layer_one_size=layer_one_size,
-                layer_two_size=layer_two_size,
-            )
+
             epoch.append(ep)
             msd.append(model.train(X, y))
 
