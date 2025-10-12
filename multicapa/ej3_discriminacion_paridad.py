@@ -208,7 +208,7 @@ class ParityMultyPerceptron:
         # Propagación a la primera capa oculta
         W2 = np.asarray(self.weights[1], dtype=float)  # Matriz (H1,)
 
-        delta_hidden1 = np.dot(W2, delta_hidden2) * self._sigmoid_derivative(a1)  # Vector (H1,)
+        delta_hidden1 = np.dot(W2.T, delta_hidden2) * self._sigmoid_derivative(a1)  # Vector (H1,)
         # Gradientes de la capa oculta 1
         grad_W1 = np.outer(delta_hidden1, x)  # Matriz (H1, 35) 
         grad_b1 = delta_hidden1                # Vector (H1,)
