@@ -70,7 +70,8 @@ def parse_training_data(file_path):
     return X, y
 
 def main():
-    lrs = [0.01, 0.001, 0.0001]
+    lrs = [0.1, 0.08, 0.05, 0.03, 0.01, 0.008, 0.005, 0.003]
+    #lrs = [0.01, 0.001, 0.0001]
     _, epochs, epsilon, beta, input_file, _ = parse_params("params.json")
     X, y = parse_training_data(input_file)
 
@@ -80,26 +81,30 @@ def main():
     for learn_rate in lrs:
         # Entrenamiento Linear
         perceptron = LinearPerceptron(learn_rate, 2000, epsilon)
-        perceptron.train(X, y)
-        mse_lin = read_mse_from_log("training_log_lin.txt")
+        with open("analisis_training_log_lin.txt", 'w') as f_train:
+            perceptron.train(
+                X, y,
+                train_log_file=f_train
+            )
+        mse_lin = read_mse_from_log("analisis_training_log_lin.txt")
         linear_mse_logs[f"Learning Rate={learn_rate}"] = mse_lin
 
         # Entrenamiento Non-Linear
-        perceptron = NonLinearPerceptron(learn_rate, 30000, epsilon, beta)
-        with open("training_log_nonlin.txt", 'w') as f_train:
+        perceptron = NonLinearPerceptron(learn_rate, 2000, epsilon, beta)
+        with open("analisis_training_log_nonlin.txt", 'w') as f_train:
             perceptron.train(
                 X, y,
                 train_log_file=f_train,
                 verbose=False  # El verbose del perceptrón no es necesario aquí
             )
-        mse_nonlin = read_mse_from_log("training_log_nonlin.txt")
+        mse_nonlin = read_mse_from_log("analisis_training_log_nonlin.txt")
         nonlinear_mse_logs[f"Learning Rate={learn_rate}"] = mse_nonlin
 
     # Graficar todos los lineales en un solo gráfico
-    plot_all_mse(linear_mse_logs, title="[Lineal] MSE vs Épocas", save_as="plot/all_linear.png")
+    plot_all_mse(linear_mse_logs, title="[Lineal] MSE vs Épocas", save_as="all_linear.png")
 
     # Graficar todos los no lineales en otro gráfico
-    plot_all_mse(nonlinear_mse_logs, title="[No Lineal] MSE vs Épocas", save_as="plot/all_nonlinear.png")
+    plot_all_mse(nonlinear_mse_logs, title="[No Lineal] MSE vs Épocas", save_as="all_nonlinear.png")
 
 if __name__ == "__main__":
     main()

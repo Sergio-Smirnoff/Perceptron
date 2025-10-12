@@ -14,6 +14,22 @@ import os
 def mean_squared_error(y_true, y_pred):
     return np.mean((y_true - y_pred) ** 2)
 
+def scale_array(array):
+    """Escala array de 1D!!!!!!!!
+    Output en (-1, 1)
+    """
+    array = np.asarray(array, dtype=float)
+    array_min = np.min(array)
+    array_max = np.max(array)
+    denom = (array_max - array_min)
+    # denom[denom == 0] = 1e-9
+    #Xnew= (Xold - Xmin)/(Xmax - Xmin) * (newMax - newMin) + newMin
+    if denom == 0:
+        return np.zeros_like(array), array_min, array_max
+    scaled = 2 * (array - array_min) / denom - 1
+    return scaled, array_min, array_max
+
+
 def parse_params(params):
     with open(params) as f:
         params = json.load(f)
@@ -44,6 +60,12 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
 
     folds = k_fold_indices(len(X), k_folds, seed=seed)
     #test_errors = []
+    # 1. Calcular los parámetros de escalado GLOBALES UNA SOLA VEZ
+    X_min_global = np.min(X, axis=0)
+    X_max_global = np.max(X, axis=0)
+    _, y_min_global, y_max_global = scale_array(y) # Usamos tu función auxiliar
+    
+    global_params = (X_min_global, X_max_global, y_min_global, y_max_global)
 
     for i in tqdm(range(k_folds), desc="K-Folds Progress"):
         # 1. Separar datos en train y test
@@ -68,6 +90,7 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
                 X_test=X_test, y_test=y_test,
                 train_log_file=f_train,
                 test_log_file=f_test,
+                global_scaling_params=global_params,
                 verbose=False
             )
 

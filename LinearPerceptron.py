@@ -12,7 +12,7 @@ class LinearPerceptron(SimplePerceptron):
         super().__init__(learning_rate, epochs, epsilon)
         self.threshold = threshold
 
-    def train(self, X: np.ndarray, z: np.array):
+    def train(self, X: np.ndarray, z: np.array, train_log_file=None):
         """Train linear perceptron with given training set and expected outputs.
 
         Args:
@@ -41,6 +41,8 @@ class LinearPerceptron(SimplePerceptron):
 
             mean_squared_error = sum_squared_error / len(X)
             log_file.write(f"{mean_squared_error}\n")
+            if train_log_file:
+                train_log_file.write(f"{mean_squared_error}\n")
 
             print(f'MSE at epoch {epoch+1}: {mean_squared_error}')
 
