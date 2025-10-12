@@ -43,7 +43,7 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
     os.makedirs("logs")
 
     folds = k_fold_indices(len(X), k_folds, seed=seed)
-    test_errors = []
+    #test_errors = []
 
     for i in tqdm(range(k_folds), desc="K-Folds Progress"):
         # 1. Separar datos en train y test
@@ -72,17 +72,17 @@ def test_perceptron(learn_rate, epochs, epsilon, X, y, beta=1.0, k_folds=10, see
             )
 
         # 5. Calcular error final
-        preds = perceptron.predict(X_test)
-        final_mse = np.mean((preds - y_test) ** 2)
-        test_errors.append(final_mse)
+        #preds = perceptron.predict(X_test)
+        #final_mse = np.mean((preds - y_test) ** 2)
+        #test_errors.append(final_mse)
 
-        denom_X = (perceptron.X_max - perceptron.X_min)
-        denom_X[denom_X == 0] = 1e-9
+        #denom_X = (perceptron.X_max - perceptron.X_min)
+        #denom_X[denom_X == 0] = 1e-9
 
 
-    avg_mse = np.mean(test_errors)
-    print(f"\nPromedio de MSE final en test (perceptrón): {avg_mse:.6f}")
-    return avg_mse
+    #avg_mse = np.mean(test_errors)
+    #print(f"\nPromedio de MSE final en test (perceptrón): {avg_mse:.6f}")
+    #return avg_mse
 
 def pad_curves(curves, target_len):
     padded = []
