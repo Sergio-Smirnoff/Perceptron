@@ -4,7 +4,7 @@ import logging as log
 import tqdm
 
 
-log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+#log.basicConfig(level=log.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class ParityMultyPerceptron:
@@ -75,7 +75,7 @@ class ParityMultyPerceptron:
             random.uniform(-0.5, 0.5)
         ]
 
-        log.info(f"Red neuronal inicializada: {INPUT_SIZE} -> {self.layer_one_size} -> {self.layer_two_size} -> {self.layer_two_output_size}")
+        #log.info(f"Red neuronal inicializada: {INPUT_SIZE} -> {self.layer_one_size} -> {self.layer_two_size} -> {self.layer_two_output_size}")
 
     def _initialize_delta_w(self, INPUT_SIZE):
         """
@@ -96,7 +96,7 @@ class ParityMultyPerceptron:
             0.0
         ]
     
-        log.info("Delta W inicializado para Momentum")
+        #log.info("Delta W inicializado para Momentum")
     
     def _initialize_adam(self, INPUT_SIZE):
         """
@@ -129,8 +129,8 @@ class ParityMultyPerceptron:
             0.0
         ]
         
-        log.info("Momentos m y v inicializados para Adam")
-        log.info(f"Beta1: {self.beta1}, Beta2: {self.beta2}, Epsilon: {self.adam_epsilon}")
+        # log.info("Momentos m y v inicializados para Adam")
+        # log.info(f"Beta1: {self.beta1}, Beta2: {self.beta2}, Epsilon: {self.adam_epsilon}")
 
     def _sigmoid(self, x):
         """Función de activación sigmoide
@@ -182,6 +182,8 @@ class ParityMultyPerceptron:
         x, a1, a2, out = activations  # x:(35,), a1:(H,), a2:(H,), out: escalar
         y = float(y_expected)
         out = float(out)
+        error_output = out*10
+
 
         # Convertir a numpy arrays para operaciones vectoriales
         a1 = np.array(a1)
@@ -189,7 +191,8 @@ class ParityMultyPerceptron:
         x = np.array(x)
 
         # Error y delta de la capa de salida
-        error = y - out
+        error = y - error_output
+        print(f"Error from : {y} - {out} = {error}")
         delta_out = error * self._sigmoid_derivative(out)  # escalar
 
         grad_W3 = a2 * delta_out  # Vector (H2,)
@@ -244,17 +247,18 @@ class ParityMultyPerceptron:
         if self.optimization_mode not in update_functions:
             raise ValueError(f"Modo de optimización no soportado: {self.optimization_mode}")
         
-        self._log_training_start()
+        # self._log_training_start()
         
         if self.optimization_mode == "adam":
             self.adam_t = 0
 
-        z_normalized = [z / 9.0 for z in z]
+        # z_normalized = [z / 9.0 for z in z]
         N = len(numbers_list)
         convergence = False
         
         update_function = update_functions[self.optimization_mode]
 
+        errors_by_epoch = []
         for epoch in tqdm.tqdm(range(self.epochs), desc=f"Entrenando ({self.optimization_mode})"):
             sum_squared_error = 0.0
 
@@ -263,43 +267,48 @@ class ParityMultyPerceptron:
 
             for i in idxs:
                 x_i = numbers_list[i]
-                y_i = z_normalized[i]
+                # y_i = z_normalized[i]
+                y_i = z[i]
+
                 
                 activations = self.forward_pass(x_i)
                 grad_w, grad_b, error = self.backward_pass(y_i, activations)
+
                 
                 update_function(grad_w, grad_b)
 
                 sum_squared_error += float(error) ** 2
 
             mse = np.mean(sum_squared_error)
+            errors_by_epoch.append(mse)
+
 
             if mse < self.epsilon:
                 convergence = True
-                log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mse:.6f}")
+                #log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mse:.6f}")
                 break
 
-            if (epoch + 1) % 100 == 0:
-                log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mse:.6f}")
+            # if (epoch + 1) % 100 == 0:
+            #     log.info(f"Época {epoch + 1}/{self.epochs} - MSE: {mse:.6f}")
 
-        self._log_training_end(epoch + 1, convergence, mse)
-        return mse
+        # self._log_training_end(epoch + 1, convergence, mse)
+        return mse, errors_by_epoch
 
-    def _log_training_start(self):
-        """Logging del inicio del entrenamiento según el modo."""
-        if self.optimization_mode == "descgradient":
-            log.info(f"Iniciando entrenamiento GRADIENTE DESCENDENTE: {self.epochs} épocas, lr={self.learning_rate}")
-        elif self.optimization_mode == "momentum":
-            log.info(f"Iniciando entrenamiento MOMENTUM: {self.epochs} épocas, lr={self.learning_rate}, alpha={self.alpha}")
-        elif self.optimization_mode == "adam":
-            log.info(f"Iniciando entrenamiento ADAM: {self.epochs} épocas, lr={self.learning_rate}")
-            log.info(f"Beta1={self.beta1}, Beta2={self.beta2}, Epsilon={self.adam_epsilon}")
+    # def _log_training_start(self):
+    #     """Logging del inicio del entrenamiento según el modo."""
+    #     if self.optimization_mode == "descgradient":
+    #         log.info(f"Iniciando entrenamiento GRADIENTE DESCENDENTE: {self.epochs} épocas, lr={self.learning_rate}")
+    #     elif self.optimization_mode == "momentum":
+    #         log.info(f"Iniciando entrenamiento MOMENTUM: {self.epochs} épocas, lr={self.learning_rate}, alpha={self.alpha}")
+    #     elif self.optimization_mode == "adam":
+    #         log.info(f"Iniciando entrenamiento ADAM: {self.epochs} épocas, lr={self.learning_rate}")
+    #         log.info(f"Beta1={self.beta1}, Beta2={self.beta2}, Epsilon={self.adam_epsilon}")
 
-    def _log_training_end(self, total_epochs, convergence, mse):
-        """Logging del final del entrenamiento."""
-        log.info(f"Entrenamiento finalizado después de {total_epochs} épocas")
-        log.info(f"Convergencia: {'ALCANZADA' if convergence else 'NO ALCANZADA'}")
-        log.info(f"Error cuadrático medio final: {mse:.6f}")
+    # def _log_training_end(self, total_epochs, convergence, mse):
+    #     """Logging del final del entrenamiento."""
+    #     log.info(f"Entrenamiento finalizado después de {total_epochs} épocas")
+    #     log.info(f"Convergencia: {'ALCANZADA' if convergence else 'NO ALCANZADA'}")
+    #     log.info(f"Error cuadrático medio final: {mse:.6f}")
 
     def update_weights_momentum(self, grad_w, grad_b):
             """
@@ -421,7 +430,7 @@ class ParityMultyPerceptron:
         #     final_output = final_output[0] if len(final_output) == 1 else final_output
 
         # Convertir de [0,1] a [-1,1]
-        return int(final_output * 10)
+        return final_output * 10
     
     def predict_parity(self, x) -> bool:
         """

@@ -6,6 +6,7 @@ import traceback
 import numpy as np
 from ej3_discriminacion_paridad import ParityMultyPerceptron
 import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
 import pandas as pd
 from multiprocessing import Pool
 import multiprocessing as mp
@@ -21,7 +22,7 @@ DIGITS_OUTFILE = "multicapa/digits_outputs.txt"
 PARITY_OUTFILE = "multicapa/parity_output.txt"
 
 LEARNING_RATE = 0.01
-EPOCHS = 2000
+EPOCHS = 5000
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 15
 LAYER_TWO_SIZE = 5
@@ -176,25 +177,106 @@ def noise_variation_run():
     plot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plot.grid(True, alpha=0.3)
     plot.tight_layout()
-    plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
+    # plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
     plot.show()
 
 
+def plot_mse_curves(errors_dict, title="MSE por época", smooth_window=None):
+    """
+    Grafica una curva por cada experimento.
+    
+    Args:
+        errors_dict (dict[str, list[float] | np.ndarray]): 
+            {nombre_experimento: errores_por_epoca}
+        title (str): título del gráfico
+        smooth_window (int | None): si se indica (p.ej. 5), aplica media móvil
+                                    para suavizar las curvas.
+    """
+    plt.figure()
+    for label, errs in errors_dict.items():
+        errs = np.asarray(errs, dtype=float)
+        if smooth_window and smooth_window > 1 and len(errs) >= smooth_window:
+            # media móvil simple
+            kernel = np.ones(smooth_window) / smooth_window
+            errs_sm = np.convolve(errs, kernel, mode='valid')
+            xs = np.arange(1, len(errs_sm)+1)
+            plt.plot(xs, errs_sm, label=f"{label} (MA{smooth_window})")
+        else:
+            xs = np.arange(1, len(errs)+1)
+            plt.plot(xs, errs, label=label)
+    plt.xlabel("Época")
+    plt.ylabel("MSE")
+    plt.title(title)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def print_mse_table(errors_dict, every=10):
+    """
+    Imprime en consola una tabla con MSE por época para cada experimento.
+    
+    Args:
+        errors_dict (dict[str, list[float] | np.ndarray])
+        every (int): cada cuántas épocas mostrar (p.ej., 1 para todas, 10 para saltos de 10)
+    """
+    # encabezado
+    labels = list(errors_dict.keys())
+    widths = [max(len("Epoch"), 5)] + [max(len(lbl), 10) for lbl in labels]
+    header = f"{'Epoch'.ljust(widths[0])} " + " ".join(lbl.ljust(w) for lbl, w in zip(labels, widths[1:]))
+    print(header)
+    print("-" * len(header))
+    
+    max_epochs = max(len(v) for v in errors_dict.values())
+    for ep in range(1, max_epochs + 1):
+        if (ep == 1) or (ep == max_epochs) or (ep % every == 0):
+            row = [str(ep).ljust(widths[0])]
+            for lbl, w in zip(labels, widths[1:]):
+                errs = errors_dict[lbl]
+                if ep <= len(errs):
+                    row.append(f"{errs[ep-1]:.6f}".ljust(w))
+                else:
+                    row.append("-".ljust(w))
+            print(" ".join(row))
+
+
+
 def main():
-    try:
-        # Limpieza opcional de archivos de salida en este run
-        for fname in [DIGITS_OUTFILE, PARITY_OUTFILE, "predictions.txt"]:
-            fpath = os.path.join(OUT_DIR, fname)
-            if os.path.exists(fpath):
-                os.remove(fpath)
+    
+    # Limpieza opcional de archivos de salida en este run
+    for fname in [DIGITS_OUTFILE, PARITY_OUTFILE, "predictions.txt"]:
+        fpath = os.path.join(OUT_DIR, fname)
+        if os.path.exists(fpath):
+            os.remove(fpath)
 
-        # ======================= RUN =====================
+    # ======================= RUN =====================
 
-        # noise modification run with adam
-        noise_variation_run()
+    # Cargar datos limpios
+    X_clean, y = load_digits_flat(find_input_file())
+    # X = make_noise(X_clean.copy(), noise_level=noise)
 
-    except Exception as e:
-        print("Ocurrió un error en main:", e)
+    # noise modification run with adam
+    noise_variation_run()
+    # model_sgd = ParityMultyPerceptron(
+    #     layer_one_size=LAYER_ONE_SIZE,
+    #     layer_two_size=LAYER_TWO_SIZE,
+    #     learning_rate=LEARNING_RATE,
+    #     epochs=EPOCHS,
+    #     epsilon=EPSILON,
+    #     optimization_mode="descgradient"
+    # )
+    # mse_sgd,  errs_sgd  = model_sgd.train(X_clean, y)
+
+    # # 1) imprimir tabla (cada 20 épocas + primera/última)
+    # print_mse_table({
+    #     "SGD": errs_sgd
+    # }, every=20)
+
+    # # 2) graficar curvas (con suavizado opcional de media móvil 5)
+    # plot_mse_curves({
+    #     "SGD": errs_sgd
+    # }, title="Comparación de MSE por época", smooth_window=5)
 
 
 

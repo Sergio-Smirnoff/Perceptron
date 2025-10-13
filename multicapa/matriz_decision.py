@@ -27,7 +27,7 @@ DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
 LEARNING_RATE = 0.01
-EPOCHS = int(sys.argv[1])
+EPOCHS = 5000
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 25
 LAYER_TWO_SIZE = 25
