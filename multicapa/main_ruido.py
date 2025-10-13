@@ -195,15 +195,8 @@ def plot_mse_curves(errors_dict, title="MSE por época", smooth_window=None):
     plt.figure()
     for label, errs in errors_dict.items():
         errs = np.asarray(errs, dtype=float)
-        if smooth_window and smooth_window > 1 and len(errs) >= smooth_window:
-            # media móvil simple
-            kernel = np.ones(smooth_window) / smooth_window
-            errs_sm = np.convolve(errs, kernel, mode='valid')
-            xs = np.arange(1, len(errs_sm)+1)
-            plt.plot(xs, errs_sm, label=f"{label} (MA{smooth_window})")
-        else:
-            xs = np.arange(1, len(errs)+1)
-            plt.plot(xs, errs, label=label)
+        xs = np.arange(1, len(errs)+1)
+        plt.plot(xs, errs, label=label)
     plt.xlabel("Época")
     plt.ylabel("MSE")
     plt.title(title)
@@ -211,6 +204,7 @@ def plot_mse_curves(errors_dict, title="MSE por época", smooth_window=None):
     plt.legend()
     plt.tight_layout()
     plt.show()
+    plot.savefig(os.path.join(OUT_DIR, f"mse_curves_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
 
 
 def print_mse_table(errors_dict, every=10):
@@ -254,29 +248,24 @@ def main():
 
     # Cargar datos limpios
     X_clean, y = load_digits_flat(find_input_file())
-    # X = make_noise(X_clean.copy(), noise_level=noise)
+    errs = {}
+    # for noise in np.arange(0, 1.1, 0.1):
+    for noise in [0.0]:
+        X = make_noise(X_clean.copy(), noise_level=noise)
 
-    # noise modification run with adam
-    noise_variation_run()
-    # model_sgd = ParityMultyPerceptron(
-    #     layer_one_size=LAYER_ONE_SIZE,
-    #     layer_two_size=LAYER_TWO_SIZE,
-    #     learning_rate=LEARNING_RATE,
-    #     epochs=EPOCHS,
-    #     epsilon=EPSILON,
-    #     optimization_mode="descgradient"
-    # )
-    # mse_sgd,  errs_sgd  = model_sgd.train(X_clean, y)
-
-    # # 1) imprimir tabla (cada 20 épocas + primera/última)
-    # print_mse_table({
-    #     "SGD": errs_sgd
-    # }, every=20)
-
-    # # 2) graficar curvas (con suavizado opcional de media móvil 5)
-    # plot_mse_curves({
-    #     "SGD": errs_sgd
-    # }, title="Comparación de MSE por época", smooth_window=5)
+        # noise modification run with adam
+        # noise_variation_run()
+        model_sgd = ParityMultyPerceptron(
+            layer_one_size=LAYER_ONE_SIZE,
+            layer_two_size=LAYER_TWO_SIZE,
+            learning_rate=LEARNING_RATE,
+            epochs=EPOCHS,
+            epsilon=EPSILON,
+            optimization_mode="descgradient"
+        )
+        mse_sgd,  errs_sgd  = model_sgd.train(X_clean, y)
+        errs[noise] = errs_sgd
+    plot_mse_curves(errs, title="Comparación de MSE por época", smooth_window=5)
 
 
 

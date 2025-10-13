@@ -185,14 +185,16 @@ class ParityMultyPerceptron:
         error_output = out*10
 
 
+
         # Convertir a numpy arrays para operaciones vectoriales
         a1 = np.array(a1)
         a2 = np.array(a2)
         x = np.array(x)
 
         # Error y delta de la capa de salida
+        error_output = np.ceil(error_output) if np.ceil(error_output)-y < self.epsilon else np.floor(error_output)
         error = y - error_output
-        print(f"Error from : {y} - {out} = {error}")
+        print(f"Error from : {y} - {error_output} = {error}")
         delta_out = error * self._sigmoid_derivative(out)  # escalar
 
         grad_W3 = a2 * delta_out  # Vector (H2,)
