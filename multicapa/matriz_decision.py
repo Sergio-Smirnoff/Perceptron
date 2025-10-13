@@ -27,7 +27,7 @@ DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
 LEARNING_RATE = 0.01
-EPOCHS = 10000
+EPOCHS = int(sys.argv[1])
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 25
 LAYER_TWO_SIZE = 25
@@ -118,7 +118,7 @@ def confusion_matrix_digits(X_complete, y_complete, perceptron):
     plt.xlabel("Predicho")
     plt.ylabel("Real")
     plt.tight_layout()
-    plt.savefig(os.path.join(OUT_DIR, "confusion_matrix_digits_normalized.png"))
+    plt.savefig(os.path.join(OUT_DIR, f'confusion_matrix_digits_{EPOCHS}.png'))
 
 def confusion_matrix_parity(X_complete, y_complete, perceptron):
     # 5 corridas de testeo sobre TODO el set (o poné X_test si querés solo test)
@@ -127,8 +127,8 @@ def confusion_matrix_parity(X_complete, y_complete, perceptron):
 
     for j in range(5):
         for i, x in enumerate(X_complete):
-            p = int(perceptron.predict_parity(np.array(x)))  # debe devolver 0 o 1
-            parity = True if (i % 2) == 1 else False          # etiqueta real (0=par, 1=impar)
+            p = perceptron.predict_parity(np.array(x))  # debe devolver 0 o 1
+            parity = True if (i % 2) == 0 else False          # etiqueta real (0=par, 1=impar)
             y_true_all.append(parity)
             y_pred_all.append(p)                      # etiqueta predicha
 
@@ -172,8 +172,7 @@ def main():
     )
     perceptron.train(X_train, y_train)
 
-    # confusion_matrix_digits(X_complete, y_complete, perceptron)
-
+    confusion_matrix_digits(X_complete, y_complete, perceptron)
     confusion_matrix_parity(X_complete, y_complete, perceptron)
 
 if __name__ == "__main__":
