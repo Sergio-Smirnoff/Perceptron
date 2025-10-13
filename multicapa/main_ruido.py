@@ -1,0 +1,203 @@
+
+import datetime
+import os
+import sys
+import traceback
+import numpy as np
+from ej3_discriminacion_paridad import ParityMultyPerceptron
+import matplotlib.pyplot as plot
+import pandas as pd
+from multiprocessing import Pool
+import multiprocessing as mp
+
+import logging as log
+
+log.basicConfig(level=log.INFO)
+# ================== CONSTANTS ====================
+INPUT_PATH = "multicapa/input/TP3-ej3-digitos.txt"
+INPUT_TEST_PATH = "multicapa/input/TP3-ej3-digitos-test-light.txt"
+OUT_DIR = "multicapa/outputs_ej3"
+DIGITS_OUTFILE = "multicapa/digits_outputs.txt"
+PARITY_OUTFILE = "multicapa/parity_output.txt"
+
+LEARNING_RATE = 0.01
+EPOCHS = 2000
+EPSILON = 1e-4
+LAYER_ONE_SIZE = 15
+LAYER_TWO_SIZE = 5
+OPTIMIZATION_MODE = "descgradient" # "descgradient" or "momentum" or "adam"
+NOISE = 0.1 
+# =================================================
+
+def find_input_file():
+    """Busca el archivo de entrada."""
+    if os.path.exists(INPUT_PATH):
+        return INPUT_PATH
+    else: 
+
+        print(f"'{INPUT_PATH}' no está en el directorio actual.")
+        sys.exit(1)
+
+def find_test_file():
+    """Busca el archivo de entrada de test."""
+    if os.path.exists(INPUT_TEST_PATH):
+        return INPUT_TEST_PATH
+    else:
+        print(f"'{INPUT_TEST_PATH}' no está en el directorio actual.")
+        sys.exit(1)
+
+def make_noise(array, noise_level=0.1):
+    """
+    Agrega ruido a un array de 0/1.
+    noise_level: fracción de bits a invertir (0..1)
+    """
+    num_elements = len(array)
+    num_noisy = int(num_elements * noise_level)
+    indices = np.random.choice(num_elements, num_noisy, replace=False)
+    for idx in indices:
+        array[idx] = 1 - array[idx]  # invierte 0 a 1 o 1 a 0
+    return array
+
+def load_digits_flat(path):
+    """
+    Lee el archivo en bloques de 7x5 (0/1).
+    Retorna X (N_digitos, 35) y etiquetas y_digits (0..N-1).
+    """
+    with open(path, "r") as f:
+        raw_lines = [line.strip() for line in f.readlines() if line.strip() != ""]
+
+    if len(raw_lines) % 7 != 0:
+        raise ValueError(f"Formato inesperado: {len(raw_lines)} líneas no es múltiplo de 7.")
+
+    num_digits = len(raw_lines) // 7
+    digits = []
+    for i in range(num_digits):
+        block = raw_lines[i * 7:(i + 1) * 7]
+        flat = []
+        for row in block:
+            parts = [p for p in row.split() if p in ("0", "1")]
+            flat.extend([int(x) for x in parts])
+        if len(flat) != 35:
+            raise ValueError(f"Bloque {i} tiene {len(flat)} valores (esperaba 35).")
+        digits.append(np.array(flat, dtype=int))
+    X = digits
+
+    y_digits = np.arange(num_digits)
+    return X, y_digits
+
+def noise_variation_run():
+    """
+    Corre el entrenamiento y testeo variando el nivel de ruido.
+    """
+    results = []
+    detours = []
+    noises = np.arange(0, 1.1, 0.1)
+
+    for noise in noises:
+        print(f"\n=== Noise Level: {noise:.1f} ===")
+        
+        # Cargar datos limpios
+        X_clean, y = load_digits_flat(find_input_file())
+        X = make_noise(X_clean.copy(), noise_level=noise)
+
+        pmp = ParityMultyPerceptron(
+            layer_one_size=LAYER_ONE_SIZE,
+            layer_two_size=LAYER_TWO_SIZE,
+            learning_rate=LEARNING_RATE,
+            epochs=1,  # Una época a la vez
+            epsilon=EPSILON,
+            optimization_mode=OPTIMIZATION_MODE
+        )
+
+        epoch_errors = []
+        epoch_stds = []
+
+        for epoch in range(EPOCHS):
+            pmp.train(X_clean, y)
+            
+            errors = []
+            for xi, yi in zip(X, y): 
+                num = pmp.predict(xi)
+                errors.append(abs(num - yi)) 
+            
+            # Métricas
+            mean_error = np.mean(errors)
+            std_error = np.std(errors)
+            
+            epoch_errors.append(mean_error)
+            epoch_stds.append(std_error)
+            
+            if epoch % 10 == 0:
+                print(f"Epoch {epoch}: Mean Error = {mean_error:.4f} ± {std_error:.4f}")
+        
+        results.append(epoch_errors)
+        detours.append(epoch_stds)
+
+    # Plotear resultados
+    # plot.figure(figsize=(12, 7))
+    # epochs_range = range(EPOCHS)
+    
+    # for i, noise in enumerate(noises):
+    #     plot.errorbar(
+    #         epochs_range, 
+    #         results[i], 
+    #         yerr=detours[i], 
+    #         label=f"Noise {noise:.1f}", 
+    #         capsize=3,
+    #         alpha=0.7,
+    #         errorevery=5  # Mostrar error bars cada 5 puntos para claridad
+    #     )
+    
+    # plot.xlabel("Epochs")
+    # plot.ylabel("Mean Absolute Error")
+    # plot.title("Training Error vs Epochs for Different Noise Levels")
+    # plot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    # plot.grid(True, alpha=0.3)
+    # plot.tight_layout()
+    # plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
+    # plot.show()
+
+    # Plotear resultados
+    plot.figure(figsize=(12, 7))
+    epochs_range = range(EPOCHS)
+    
+    for i, noise in enumerate(noises):
+        plot.plot(
+            epochs_range, 
+            results[i], 
+            label=f"Noise {noise:.1f}", 
+            alpha=0.7,
+            linewidth=2
+        )
+    
+    plot.xlabel("Epochs")
+    plot.ylabel("Mean Absolute Error")
+    plot.title("Training Error vs Epochs for Different Noise Levels")
+    plot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plot.grid(True, alpha=0.3)
+    plot.tight_layout()
+    plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
+    plot.show()
+
+
+def main():
+    try:
+        # Limpieza opcional de archivos de salida en este run
+        for fname in [DIGITS_OUTFILE, PARITY_OUTFILE, "predictions.txt"]:
+            fpath = os.path.join(OUT_DIR, fname)
+            if os.path.exists(fpath):
+                os.remove(fpath)
+
+        # ======================= RUN =====================
+
+        # noise modification run with adam
+        noise_variation_run()
+
+    except Exception as e:
+        print("Ocurrió un error en main:", e)
+
+
+
+if __name__ == "__main__":
+    main()
+
