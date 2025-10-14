@@ -33,8 +33,8 @@ OUT_DIR = "multicapa/outputs_ej3"
 DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
-LEARNING_RATE = 0.1
-EPOCHS = 50000
+LEARNING_RATE = 0.01
+EPOCHS = 500
 EPSILON = 1e-4
 LAYER_ONE_SIZE = 25
 LAYER_TWO_SIZE = 15
@@ -209,6 +209,78 @@ def mse_vs_epochs_run(X_clean, y):
     plt.close()
 
 
+def plot_mse_curves(errors_dict, title="MSE por época"):
+    """
+    Grafica una curva por cada experimento.
+    
+    Args:
+        errors_dict (dict[str, list[float] | np.ndarray]): 
+            {nombre_experimento: errores_por_epoca}
+        title (str): título del gráfico
+        smooth_window (int | None): si se indica (p.ej. 5), aplica media móvil
+                                    para suavizar las curvas.
+    """
+    plt.figure()
+    for label, errs in errors_dict.items():
+        errs = np.asarray(errs, dtype=float)
+        xs = np.arange(1, len(errs)+1)
+        plt.plot(xs, errs, label=label)
+    plt.xlabel("Época")
+    plt.ylabel("MSE")
+    plt.title(title)
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plot.savefig(os.path.join(OUT_DIR, f"noise_error_vs_epochs.png"))
+    plt.show()
+
+def noises_error_vs_epochs(X_clean, y):
+
+    perceptron = MultiLayer(
+        layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
+        learning_rate=LEARNING_RATE,
+        epochs=1,
+        epsilon=EPSILON,
+        optimization_mode=OPTIMIZATION_MODE,
+        seed=42
+    )
+
+    
+    logger.info("Iniciando entrenamiento para MSE vs Épocas...")
+
+    noise_errors = {noise: [] for noise in np.arange(0, 1.1, 0.1)}
+    noises = [noise for noise in np.arange(0, 1.1, 0.1)]
+    X = [make_noise(X_clean.copy(), noise_level=noise) for noise in noises]
+
+    for epoch in range(EPOCHS):
+        error_entropy, error_mse = perceptron.train(X_clean, y)
+        for i, noise in enumerate(noises):
+            y_pred = perceptron.predict(X[i])   #array de predicciones para X con ruido
+            noise_errors[noise].append(np.mean((y - y_pred)**2))
+
+    
+
+    # errors_dict = {noise: [] for noise in np.arange(0, 1.1, 0.1)}
+    # # for noise in np.arange(0, 1.1, 0.1):
+    # for noise in [0.0]:
+    #     X = make_noise(X_clean.copy(), noise_level=noise)
+
+    #     # noise modification run with adam
+    #     model_sgd = MultiLayer(
+    #         layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
+    #         learning_rate=LEARNING_RATE,
+    #         epochs=1,
+    #         epsilon=EPSILON,
+    #         optimization_mode="descgradient",
+    #         loss_function="mse"
+    #     )
+    #     for epoch in range(EPOCHS):
+    #         mse_sgd,  errs_sgd  = model_sgd.train(X_clean, y)
+    #         y_pred = model_sgd.predict(X)   #array de predicciones para X con ruido
+    #         errors_dict[noise].append(np.mean((y - y_pred)**2))
+
+    plot_mse_curves(noise_errors, title="Comparación de MSE por época")
+
 def main():
     try:
 
@@ -216,30 +288,32 @@ def main():
 
         X_clean, y = load_digits_flat(find_input_file())
 
-        perceptron = MultiLayer(
-            layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
-            learning_rate=LEARNING_RATE,
-            epochs=EPOCHS,
-            epsilon=EPSILON,
-            optimization_mode=OPTIMIZATION_MODE,
-            seed=42
-        )
+        # perceptron = MultiLayer(
+        #     layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
+        #     learning_rate=LEARNING_RATE,
+        #     epochs=EPOCHS,
+        #     epsilon=EPSILON,
+        #     optimization_mode=OPTIMIZATION_MODE,
+        #     seed=42
+        # )
 
-        logger.info("Entrenando modelo...")
-        error_entropy, error_mse = perceptron.train(X_clean, y)
-        logger.info(f"Error mínimo alcanzado (entropía): {error_entropy:.6f}")
-        logger.info(f"Error mínimo alcanzado (MSE): {error_mse:.6f}")
+        # logger.info("Entrenando modelo...")
+        # error_entropy, error_mse = perceptron.train(X_clean, y)
+        # logger.info(f"Error mínimo alcanzado (entropía): {error_entropy:.6f}")
+        # logger.info(f"Error mínimo alcanzado (MSE): {error_mse:.6f}")
 
-        # for i in range(10):
-        #     expected = i
-        #     predicted = perceptron.predict(X[i])
-        #     logger.info(f"Esperado: {expected}, Predicho: {predicted}")
+        # # for i in range(10):
+        # #     expected = i
+        # #     predicted = perceptron.predict(X[i])
+        # #     logger.info(f"Esperado: {expected}, Predicho: {predicted}")
 
-        logger.info("Testeando modelo...")
-        noise_variation_run(perceptron=perceptron, X_clean=X_clean, y=y)
-        logger.info("Finalizando testeo...")
+        # logger.info("Testeando modelo...")
+        # noise_variation_run(perceptron=perceptron, X_clean=X_clean, y=y)
+        # logger.info("Finalizando testeo...")
 
         #mse_vs_epochs_run(X_clean, y)
+
+        noises_error_vs_epochs(X_clean, y)
 
     except Exception as e:
         logger.error("Ocurrió un error en main: %s", e)

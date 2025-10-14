@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from multiprocessing import Pool
 import multiprocessing as mp
+from multiLayer import MultiLayer
 
 import logging as log
 
@@ -223,14 +224,13 @@ def main():
         X = make_noise(X_clean.copy(), noise_level=noise)
 
         # noise modification run with adam
-        # noise_variation_run()
-        model_sgd = ParityMultyPerceptron(
-            layer_one_size=LAYER_ONE_SIZE,
-            layer_two_size=LAYER_TWO_SIZE,
+        model_sgd = MultiLayer(
+            layers_array=[25, 5],
             learning_rate=LEARNING_RATE,
-            epochs=EPOCHS,
+            epochs=1,
             epsilon=EPSILON,
-            optimization_mode="descgradient"
+            optimization_mode="descgradient",
+            loss_function="mse"
         )
         mse_sgd,  errs_sgd  = model_sgd.train(X_clean, y)
         errs[noise] = errs_sgd
