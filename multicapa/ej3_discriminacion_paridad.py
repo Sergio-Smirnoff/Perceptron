@@ -46,7 +46,7 @@ class ParityMultyPerceptron:
         elif self.optimization_mode == "adam":
             self._initialize_adam(INPUT_SIZE)
 
-        #hardcoded for 2 layers
+        # hardcoded for 2 layers
         # weights = [ 
         #       [ layer 1
         #           [w1, w2, ..., w35], ..., [w1, w2, ..., w35]  # for each neuron in layer one
@@ -192,8 +192,10 @@ class ParityMultyPerceptron:
         x = np.array(x)
 
         # Error y delta de la capa de salida
-        error_output = np.ceil(error_output) if np.ceil(error_output)-y < self.epsilon else np.floor(error_output)
         error = y - error_output
+        if abs(error) < self.epsilon:
+            error = 0.0
+
         print(f"Error from : {y} - {error_output} = {error}")
         delta_out = error * self._sigmoid_derivative(out)  # escalar
 
@@ -287,7 +289,7 @@ class ParityMultyPerceptron:
 
             if mse < self.epsilon:
                 convergence = True
-                #log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mse:.6f}")
+                log.info(f"Convergencia alcanzada en época {epoch + 1} con MSE={mse:.6f}")
                 break
 
             # if (epoch + 1) % 100 == 0:

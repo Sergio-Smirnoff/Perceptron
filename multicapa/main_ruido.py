@@ -23,7 +23,7 @@ PARITY_OUTFILE = "multicapa/parity_output.txt"
 
 LEARNING_RATE = 0.01
 EPOCHS = 5000
-EPSILON = 1e-4
+EPSILON = 1e-3
 LAYER_ONE_SIZE = 15
 LAYER_TWO_SIZE = 5
 OPTIMIZATION_MODE = "descgradient" # "descgradient" or "momentum" or "adam"
@@ -177,7 +177,7 @@ def noise_variation_run():
     plot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plot.grid(True, alpha=0.3)
     plot.tight_layout()
-    # plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
+    plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
     plot.show()
 
 
@@ -203,8 +203,8 @@ def plot_mse_curves(errors_dict, title="MSE por época", smooth_window=None):
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
-    plt.show()
     plot.savefig(os.path.join(OUT_DIR, f"mse_curves_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
+    plt.show()
 
 
 def print_mse_table(errors_dict, every=10):
@@ -249,8 +249,8 @@ def main():
     # Cargar datos limpios
     X_clean, y = load_digits_flat(find_input_file())
     errs = {}
-    # for noise in np.arange(0, 1.1, 0.1):
-    for noise in [0.0]:
+    for noise in np.arange(0, 1.1, 0.1):
+    #for noise in [0.0]:
         X = make_noise(X_clean.copy(), noise_level=noise)
 
         # noise modification run with adam
