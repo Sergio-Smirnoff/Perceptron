@@ -33,12 +33,12 @@ OUT_DIR = "multicapa/outputs_ej3"
 DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
-LEARNING_RATE = 0.001
-EPOCHS = 10000
-EPSILON = 1e-4
+LEARNING_RATE = 0.01
+EPOCHS = 50000
+EPSILON = 1e-2
 LAYER_ONE_SIZE = 25
 LAYER_TWO_SIZE = 15
-OPTIMIZATION_MODE = "adam" # "edg" or "momentum" or "adam"
+OPTIMIZATION_MODE = "momentum" # "edg" or "momentum" or "adam"
 # =================================================
 
 def find_input_file():
@@ -291,29 +291,43 @@ def error_vs_epochs_run(X_clean, y):
         seed=42
     )
 
-    error_entropy_list = []
-    error_mse_list = []
+    optimizer_list = ["edg", "momentum", "adam"]
+    perceptron_list = [
+        MultiLayer(
+            layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
+            learning_rate=LEARNING_RATE,
+            epochs=1,
+            epsilon=EPSILON,
+            optimization_mode=opt,
+            seed=42
+        ) for opt in optimizer_list
+    ]
+
+    # cada optimizador
+    error_entropy_list = [[],[],[]]
     epochs = []
     logger.info("Iniciando entrenamiento para Error vs Épocas...")
     for epoch in range(EPOCHS):
-        error_entropy, error_mse = perceptron.train(X_clean, y)
-        logger.debug(f"Época {epoch+1}/{EPOCHS} - Error Entropía: {error_entropy:.6f}, Error MSE: {error_mse:.6f}")
-        error_entropy_list.append(error_entropy)
-        error_mse_list.append(error_mse)
         epochs.append(epoch)
+        for i, perceptron in enumerate(perceptron_list):
+            error_entropy, error_mse = perceptron.train(X_clean, y)
+            error_entropy_list[i].append(error_entropy)
+            logger.debug(f"Época {epoch+1}/{EPOCHS} - Error Entropía: {error_entropy:.6f}, Error MSE: {error_mse:.6f}, Perceptron: {optimizer_list[i]}")
 
     logger.info("Entrenamiento completado para Error vs Épocas.")
     # Gráfico de error vs épocas
-    plt.figure(figsize=(10, 6))
-    plt.plot(epochs, error_entropy_list, label='Error Entropía')
-    plt.plot(epochs, error_mse_list, label='Error MSE')
+    plt.figure(figsize=(12, 7))
+    plt.plot(epochs, error_entropy_list[0], label='SGD')
+    plt.plot(epochs, error_entropy_list[1], label='Momentum')
+    plt.plot(epochs, error_entropy_list[2], label='Adam')
     plt.xlabel("Épocas", fontsize=12)
     plt.ylabel("Error", fontsize=12)
     plt.title("Error vs Épocas", fontsize=14)
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
     plt.tight_layout()
-    plt.savefig(f"{OUT_DIR}/error_vs_epochs.png", dpi=300)
+    plt.savefig(f"{OUT_DIR}/error_vs_epochs_{LEARNING_RATE}.png", dpi=300)
+    plt.show()
     plt.close()
 
 

@@ -72,6 +72,11 @@ class MultiLayer:
             self.beta2 = 0.999
             self.adam_epsilon = 1e-8
             self.t = 0  # contador de iteraciones para Adam
+        elif self.optimization_mode == "momentum":
+            # Inicializar velocidades para Momentum
+            self.delta_weights = [np.zeros_like(w) for w in self.weights]
+            self.delta_biases = [np.zeros_like(b) for b in self.biases]
+            self.alpha = 0.9  # coeficiente de momentum (típicamente 0.9)
 
     ## Funciones de activación y sus derivadas
 
@@ -219,9 +224,20 @@ class MultiLayer:
         self.log.debug("Weights and biases updated.")
 
     # Momentum
-    def update_momentum(self, weights_gradients, biases_gradients, beta=0.9):
-        """Actualización con momentum""" 
-        pass
+    def update_momentum(self, gradients_w, gradients_b):
+        """
+        Actualización de parámetros usando Momentum
+        Según ecuación 8.12: Δw(t+1) = -η·∂E/∂w + α·Δw(t)
+        """
+        for i in range(len(self.weights)):
+
+            delta_w_new = -self.learning_rate * gradients_w[i] + self.alpha * self.delta_weights[i]
+            self.weights[i] = self.weights[i] + delta_w_new
+            self.delta_weights[i] = delta_w_new
+            
+            delta_b_new = -self.learning_rate * gradients_b[i] + self.alpha * self.delta_biases[i]
+            self.biases[i] = self.biases[i] + delta_b_new
+            self.delta_biases[i] = delta_b_new
 
     # Adam
     def update_adam(self, gradients_w, gradients_b):
@@ -254,7 +270,9 @@ class MultiLayer:
     def train(self, X_train, y_train):
         X_train = np.array(X_train)
         y_train = np.array(y_train)
-
+        if self.error_entropy_min < self.epsilon:
+            self.log.debug("El entrenamiento ya ha convergido previamente.")
+            return self.error_entropy_min, self.error_mse_min
         for epoch in range(self.epochs):
             self.log.debug(f"Epoch {epoch+1}/{self.epochs}")
             # ====== FORWARD PASS ======
@@ -287,7 +305,8 @@ class MultiLayer:
                 self.error_mse_min = mse_loss
             
             # Criterio de parada: mejora menor que epsilon
-            if abs(self.error_entropy_ant - loss) < self.epsilon:
+            self.log.debug(f"Epoch {epoch+1}: Cross-Entropy Loss = {self.error_entropy:.6f},Epsilon = {self.epsilon}, MSE = {self.error_mse:.6f}")
+            if self.error_entropy_min < self.epsilon:
                 self.log.debug(f"Convergencia alcanzada en época {epoch}")
                 break
 
