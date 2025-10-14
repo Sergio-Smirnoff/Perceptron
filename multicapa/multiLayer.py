@@ -9,7 +9,7 @@ class MultiLayer:
             layers_array, # array que contiene la cantidad de neuronas por capa, el size es la cantidad de capas 
             learning_rate=0.01, 
             epochs=1000, 
-            epsilon=1e-3, 
+            epsilon=1e-4, 
             optimization_mode="descgradient",
             loss_function="cross_entropy", # "cross_entropy" o "mse"
             seed=42):
@@ -101,7 +101,6 @@ class MultiLayer:
         
         # Seleccionar solo las probabilidades de las clases correctas
         correct_confidences = predictions_clipped[np.arange(batch_size), y_true]
-        
         # Cross-entropy loss
         loss = -np.mean(np.log(correct_confidences))
         
@@ -166,15 +165,9 @@ class MultiLayer:
         
         weights_gradients = []
         biases_gradients = []
-        delta = np.array([])
         
-        # ====== ÚLTIMA CAPA - DELTA SEGÚN FUNCIÓN DE PÉRDIDA ======
-        if self.loss_function == "cross_entropy":
-            delta = activations[-1] - y_one_hot
-        
-        elif self.loss_function == "mse":
-            error = activations[-1] - y_one_hot
-            delta = error * self._sigmoid_derivative(activations[-1])
+        # ====== ÚLTIMA CAPA (softmax + cross-entropy) ======
+        delta = activations[-1] - y_one_hot
         
         # Calcular gradientes de la última capa
         w_grad = np.dot(activations[-2].T, delta) / batch_size
@@ -226,78 +219,6 @@ class MultiLayer:
 
         for epoch in range(self.epochs):
             self.log.debug(f"Epoch {epoch+1}/{self.epochs}")
-            
-            activations = self.forward_pass(X_train)
-            
-            loss_entropy = self.compute_loss(activations[-1], y_train)
-            loss_mse = self.compute_mse(activations[-1], y_train)
-            
-            weights_gradients, biases_gradients = self.backward_pass(activations, y_train)
-            
-            # ====== ACTUALIZAR PARÁMETROS ======
-            if self.optimization_mode == "edg":
-                self.update_desc_gradient(weights_gradients, biases_gradients)
-            elif self.optimization_mode == "momentum":
-                self.update_momentum(weights_gradients, biases_gradients)
-            
-            # ====== VERIFICAR CONVERGENCIA con la función de pérdida elegida ======
-            if self.loss_function == "cross_entropy":
-                current_loss = loss_entropy
-                prev_loss = self.error_entropy_ant
-            else:  # mse
-                current_loss = loss_mse
-                prev_loss = self.error_mse_ant
-            
-            self.error_entropy = loss_entropy
-            self.error_mse = loss_mse
-
-            # Guardar el mejor error
-            if loss_entropy < self.error_entropy_min:
-                self.error_entropy_min = loss_entropy
-
-            if loss_mse < self.error_mse_min:
-                self.error_mse_min = loss_mse
-            
-            # Criterio de parada
-            if abs(prev_loss - current_loss) < self.epsilon:
-                self.log.debug(f"Convergencia alcanzada en época {epoch}")
-                break
-
-            self.error_mse_ant = loss_mse
-            self.error_entropy_ant = loss_entropy
-
-        self.log.debug(f"Entrenamiento completado. Error mínimo: {self.error_entropy_min:.4f}, MSE: {self.error_mse_min:.4f}")
-        return self.error_entropy, self.error_mse
-
-    def predict(self, X):
-        """
-        Retorna las clases predichas (0-9)
-        X: (batch_size, n_features)
-        Retorna: (batch_size,) con valores 0-9
-        """
-        activations = self.forward_pass(X)
-        predictions = activations[-1]
-        
-        return np.argmax(predictions, axis=1)
-
-    def predict_proba(self, X):
-        """
-        Retorna las probabilidades para cada clase
-        X: (batch_size, n_features)
-        Retorna: (batch_size, 10) con probabilidades
-        """
-        activations = self.forward_pass(X)
-        return activations[-1]
-
-# Codigos viejos antes de refactorizar para aceptar mse y cross-entropy
-"""
-# Train y predict
-    def train(self, X_train, y_train):
-        X_train = np.array(X_train)
-        y_train = np.array(y_train)
-
-        for epoch in range(self.epochs):
-            self.log.debug(f"Epoch {epoch+1}/{self.epochs}")
             # ====== FORWARD PASS ======
             activations = self.forward_pass(X_train)
             
@@ -339,48 +260,23 @@ class MultiLayer:
         # Ver si devolver el error minimo
         return self.error_entropy, self.error_mse
 
-"""
-"""
-    def backward_pass(self, activations, y_true):
-        batch_size = activations[0].shape[0]
+    def predict(self, X):
+        """
+        Retorna las clases predichas (0-9)
+        X: (batch_size, n_features)
+        Retorna: (batch_size,) con valores 0-9
+        """
+        activations = self.forward_pass(X)
+        predictions = activations[-1]
         
-        if len(y_true.shape) == 1:
-            y_one_hot = self.to_one_hot(y_true, num_classes=self.layers[-1])
-        else:
-            y_one_hot = y_true
-        
-        weights_gradients = []
-        biases_gradients = []
-        
-        # ====== ÚLTIMA CAPA (softmax + cross-entropy) ======
-        delta = activations[-1] - y_one_hot
-        
-        # Calcular gradientes de la última capa
-        w_grad = np.dot(activations[-2].T, delta) / batch_size
-        b_grad = np.sum(delta, axis=0, keepdims=True) / batch_size
-        
-        weights_gradients.insert(0, w_grad)
-        biases_gradients.insert(0, b_grad)
-        
-        self.log.debug(f"Last layer delta shape: {delta.shape}")
-        
-        # ====== CAPAS OCULTAS (sigmoid) ======
-        for i in range(len(self.weights) - 2, -1, -1):
-            # Propagar el error hacia atrás
-            delta = np.dot(delta, self.weights[i + 1].T)
-            
-            # Aplicar derivada de sigmoid
-            delta = delta * self._sigmoid_derivative(activations[i + 1])
-            
-            # Calcular gradientes para esta capa
-            w_grad = np.dot(activations[i].T, delta) / batch_size
-            b_grad = np.sum(delta, axis=0, keepdims=True) / batch_size
-            
-            weights_gradients.insert(0, w_grad)
-            biases_gradients.insert(0, b_grad)
+        return np.argmax(predictions, axis=1)
 
-            self.log.debug(f"Layer {i} delta shape: {delta.shape}")
-
-        return weights_gradients, biases_gradients
-
-"""
+    # debug
+    def predict_proba(self, X):
+        """
+        Retorna las probabilidades para cada clase
+        X: (batch_size, n_features)
+        Retorna: (batch_size, 10) con probabilidades
+        """
+        activations = self.forward_pass(X)
+        return activations[-1]
