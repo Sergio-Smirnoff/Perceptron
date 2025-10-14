@@ -17,7 +17,7 @@ log.basicConfig(level=log.INFO)
 # ================== CONSTANTS ====================
 INPUT_PATH = "multicapa/input/TP3-ej3-digitos.txt"
 INPUT_TEST_PATH = "multicapa/input/TP3-ej3-digitos-test-light.txt"
-OUT_DIR = "multicapa/outputs_ej3"
+OUT_DIR = "multicapa/outputs_ej3/"
 DIGITS_OUTFILE = "multicapa/digits_outputs.txt"
 PARITY_OUTFILE = "multicapa/parity_output.txt"
 
@@ -92,89 +92,58 @@ def noise_variation_run():
     """
     results = []
     detours = []
-    noises = np.arange(0, 1.1, 0.1)
+    noises = np.arange(0, 1.1, 0.01)
 
-    for noise in noises:
-        print(f"\n=== Noise Level: {noise:.1f} ===")
-        
-        # Cargar datos limpios
-        X_clean, y = load_digits_flat(find_input_file())
-        X = make_noise(X_clean.copy(), noise_level=noise)
+    # Cargar datos limpios
+    X_clean, y = load_digits_flat(find_input_file())
 
-        pmp = ParityMultyPerceptron(
+    pmp = ParityMultyPerceptron(
             layer_one_size=LAYER_ONE_SIZE,
             layer_two_size=LAYER_TWO_SIZE,
             learning_rate=LEARNING_RATE,
-            epochs=1,  # Una época a la vez
+            epochs=EPOCHS,
             epsilon=EPSILON,
             optimization_mode=OPTIMIZATION_MODE
         )
 
-        epoch_errors = []
-        epoch_stds = []
-
-        for epoch in range(EPOCHS):
-            pmp.train(X_clean, y)
-            
-            errors = []
-            for xi, yi in zip(X, y): 
-                num = pmp.predict(xi)
-                errors.append(abs(num - yi)) 
-            
-            # Métricas
-            mean_error = np.mean(errors)
-            std_error = np.std(errors)
-            
-            epoch_errors.append(mean_error)
-            epoch_stds.append(std_error)
-            
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch}: Mean Error = {mean_error:.4f} ± {std_error:.4f}")
+    pmp.train(X_clean, y)
+    
+    for noise in noises:
+        print(f"\n=== Noise Level: {noise:.2f} ===")
+        X = make_noise(X_clean.copy(), noise_level=noise)
+        errors = []
+        for xi, yi in zip(X, y): 
+            num = pmp.predict(xi)
+            errors.append(abs(num - yi)) 
         
-        results.append(epoch_errors)
-        detours.append(epoch_stds)
+        # Métricas
+        mean_error = np.mean(errors)
+        std_error = np.std(errors)
+        
+        results.append(mean_error)
+        detours.append(std_error)
 
-    # Plotear resultados
-    # plot.figure(figsize=(12, 7))
-    # epochs_range = range(EPOCHS)
-    
-    # for i, noise in enumerate(noises):
-    #     plot.errorbar(
-    #         epochs_range, 
-    #         results[i], 
-    #         yerr=detours[i], 
-    #         label=f"Noise {noise:.1f}", 
-    #         capsize=3,
-    #         alpha=0.7,
-    #         errorevery=5  # Mostrar error bars cada 5 puntos para claridad
-    #     )
-    
-    # plot.xlabel("Epochs")
-    # plot.ylabel("Mean Absolute Error")
-    # plot.title("Training Error vs Epochs for Different Noise Levels")
-    # plot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    # plot.grid(True, alpha=0.3)
-    # plot.tight_layout()
-    # plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
-    # plot.show()
+    log.info("Noise variation run completed.")
+    log.info(f"Results (mean absolute error): {results}")
+    log.info(f"Detours (std dev of error): {detours}")
 
-    # Plotear resultados
+    # Plotear resultados: Error promedio y desviación estándar vs nivel de ruido
     plot.figure(figsize=(12, 7))
-    epochs_range = range(EPOCHS)
+        
+    plot.plot(
+        noises, 
+        results, 
+        label="Mean Absolute Error", 
+        alpha=0.7,
+        linewidth=2,
+        marker='o',
+        markersize=3
+    )
     
-    for i, noise in enumerate(noises):
-        plot.plot(
-            epochs_range, 
-            results[i], 
-            label=f"Noise {noise:.1f}", 
-            alpha=0.7,
-            linewidth=2
-        )
-    
-    plot.xlabel("Epochs")
+    plot.xlabel("Noise Level")
     plot.ylabel("Mean Absolute Error")
-    plot.title("Training Error vs Epochs for Different Noise Levels")
-    plot.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plot.title("Mean Absolute Error vs Noise Level")
+    plot.legend()
     plot.grid(True, alpha=0.3)
     plot.tight_layout()
     plot.savefig(os.path.join(OUT_DIR, f"noise_variation_training_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
