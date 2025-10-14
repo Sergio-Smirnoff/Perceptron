@@ -123,28 +123,42 @@ def noise_variation_run(perceptron, X_clean, y):
     noise = np.arange(0, 1.1, 0.1)
     errors_list = []
     accuracy_list = []
+    TIRADAS = 10
 
     for n in noise:
-        logger.info(f"Testeando con ruido {n:.1f}...")
-        X_noisy = make_noise(X_clean.copy(), noise_level=n)
+        logger.info(f"Testeando ruido {n:.1f}...")
+        # acumular todas las etiquetas verdaderas y predichas de las 10 tiradas
+        y_all = []
+        yhat_all = []
 
-        # Predecir
-        result = perceptron.predict(X_noisy)
+        maes_runs = []
+        acc_runs = []
 
-        # Calcular métricas
-        mae = np.mean(np.abs(result - y))
-        # Revisar accuracy
-        accuracy = np.mean(result == y) * 100
-        
-        logger.info(f"MAE con ruido {n:.1f}: {mae:.4f}")
-        logger.info(f"Accuracy con ruido {n:.1f}: {accuracy:.2f}%")
-        
-        errors_list.append(mae)
-        accuracy_list.append(accuracy)
-        
-        # Guardar matriz de confusión
+        for _ in range(TIRADAS):
+            X_noisy = make_noise(X_clean.copy(), noise_level=n)
+            yhat = perceptron.predict(X_noisy)
+
+            # métricas por tirada
+            maes_runs.append(np.mean(np.abs(yhat - y)))
+            acc_runs.append(np.mean(yhat == y) * 100)
+
+            # concatenar etiquetas y predicciones
+            y_all.extend(y.tolist() if isinstance(y, np.ndarray) else list(y))
+            yhat_all.extend(yhat.tolist() if isinstance(yhat, np.ndarray) else list(yhat))
+
+        # promedio por nivel de ruido (11 puntos)
+        errors_list.append(float(np.mean(maes_runs)))
+        accuracy_list.append(float(np.mean(acc_runs)))
+
+        # matriz de confusión con TODOS los pares (10×len(y))
+        y_all = np.asarray(y_all)
+        yhat_all = np.asarray(yhat_all)
+
+        # opcional: asegurar tipo entero si tus clases son discretas
+        # y_all = y_all.astype(int); yhat_all = yhat_all.astype(int)
+
         cm_path = f"{OUT_DIR}/confusion_matrix_noise_{n:.1f}.png"
-        plot_confusion_matrix(y, result, n, cm_path)
+        plot_confusion_matrix(y_all, yhat_all, n, cm_path)
 
     # Gráfico de error vs ruido
     plt.figure(figsize=(10, 6))
@@ -324,31 +338,31 @@ def main():
 
         X_clean, y = load_digits_flat(find_input_file())
 
-        # perceptron = MultiLayer(
-        #     layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
-        #     learning_rate=LEARNING_RATE,
-        #     epochs=EPOCHS,
-        #     epsilon=EPSILON,
-        #     optimization_mode=OPTIMIZATION_MODE,
-        #     seed=42
-        # )
+        perceptron = MultiLayer(
+            layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
+            learning_rate=LEARNING_RATE,
+            epochs=EPOCHS,
+            epsilon=EPSILON,
+            optimization_mode=OPTIMIZATION_MODE,
+            seed=42
+        )
 
-        # logger.info("Entrenando modelo...")
-        # error_entropy, error_mse = perceptron.train(X_clean, y)
-        # logger.info(f"Error mínimo alcanzado (entropía): {error_entropy:.6f}")
-        # logger.info(f"Error mínimo alcanzado (MSE): {error_mse:.6f}")
+        logger.info("Entrenando modelo...")
+        error_entropy, error_mse = perceptron.train(X_clean, y)
+        logger.info(f"Error mínimo alcanzado (entropía): {error_entropy:.6f}")
+        logger.info(f"Error mínimo alcanzado (MSE): {error_mse:.6f}")
 
-        # # for i in range(10):
-        # #     expected = i
-        # #     predicted = perceptron.predict(X[i])
-        # #     logger.info(f"Esperado: {expected}, Predicho: {predicted}")
+        # for i in range(10):
+        #     expected = i
+        #     predicted = perceptron.predict(X[i])
+        #     logger.info(f"Esperado: {expected}, Predicho: {predicted}")
 
-        # logger.info("Testeando modelo...")
-        # noise_variation_run(perceptron=perceptron, X_clean=X_clean, y=y)
-        # logger.info("Finalizando testeo...")
+        logger.info("Testeando modelo...")
+        noise_variation_run(perceptron=perceptron, X_clean=X_clean, y=y)
+        logger.info("Finalizando testeo...")
 
         #mse_vs_epochs_run(X_clean, y)
-        error_vs_epochs_run(X_clean, y)
+        # error_vs_epochs_run(X_clean, y)
         #noises_error_vs_epochs(X_clean, y)
 
     except Exception as e:
