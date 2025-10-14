@@ -129,8 +129,8 @@ class ParityMultyPerceptron:
             0.0
         ]
         
-        # log.info("Momentos m y v inicializados para Adam")
-        # log.info(f"Beta1: {self.beta1}, Beta2: {self.beta2}, Epsilon: {self.adam_epsilon}")
+        log.info("Momentos m y v inicializados para Adam")
+        log.info(f"Beta1: {self.beta1}, Beta2: {self.beta2}, Epsilon: {self.adam_epsilon}")
 
     def _sigmoid(self, x):
         """Función de activación sigmoide

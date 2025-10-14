@@ -33,12 +33,12 @@ OUT_DIR = "multicapa/outputs_ej3"
 DIGITS_OUTFILE = "digits_outputs.txt"
 PARITY_OUTFILE = "parity_output.txt"
 
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.001
 EPOCHS = 10000
-EPSILON = 1
+EPSILON = 1e-4
 LAYER_ONE_SIZE = 25
 LAYER_TWO_SIZE = 15
-OPTIMIZATION_MODE = "edg" # "edg" or "momentum" or "adam"
+OPTIMIZATION_MODE = "adam" # "edg" or "momentum" or "adam"
 # =================================================
 
 def find_input_file():

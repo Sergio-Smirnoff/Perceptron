@@ -10,7 +10,7 @@ class MultiLayer:
             learning_rate=0.01, 
             epochs=1000, 
             epsilon=1e-4, 
-            optimization_mode="descgradient",
+            optimization_mode="adam",
             loss_function="cross_entropy", # "cross_entropy" o "mse"
             seed=42):
         """
@@ -61,6 +61,17 @@ class MultiLayer:
 
             self.log.debug(f"layer {i} weights shape: {weight_matrix.shape}")
             self.log.debug(f"layer {i} biases shape: {bias_vector.shape}")
+
+        if self.optimization_mode == "adam":
+            # Inicializar momentos para Adam
+            self.m_weights = [np.zeros_like(w) for w in self.weights] # momentum
+            self.v_weights = [np.zeros_like(w) for w in self.weights] # velocity
+            self.m_biases = [np.zeros_like(b) for b in self.biases]
+            self.v_biases = [np.zeros_like(b) for b in self.biases]
+            self.beta1 = 0.9
+            self.beta2 = 0.999
+            self.adam_epsilon = 1e-8
+            self.t = 0  # contador de iteraciones para Adam
 
     ## Funciones de activación y sus derivadas
 
@@ -212,6 +223,33 @@ class MultiLayer:
         """Actualización con momentum""" 
         pass
 
+    # Adam
+    def update_adam(self, gradients_w, gradients_b):
+        """
+        Actualización de parámetros usando Adam optimizer
+        """
+        # Incrementar contador de iteraciones
+        self.t += 1
+        
+        for i in range(len(self.weights)):
+
+            gt_w = gradients_w[i]
+            self.m_weights[i] = self.beta1 * self.m_weights[i] + (1 - self.beta1) * gt_w
+            self.v_weights[i] = self.beta2 * self.v_weights[i] + (1 - self.beta2) * (gt_w ** 2)
+
+            m_w_corrected = self.m_weights[i] / (1 - self.beta1 ** self.t)
+            v_w_corrected = self.v_weights[i] / (1 - self.beta2 ** self.t)
+            self.weights[i] = self.weights[i] - self.learning_rate * m_w_corrected / (np.sqrt(v_w_corrected) + self.adam_epsilon)
+            gt_b = gradients_b[i]
+            
+            self.m_biases[i] = self.beta1 * self.m_biases[i] + (1 - self.beta1) * gt_b
+            self.v_biases[i] = self.beta2 * self.v_biases[i] + (1 - self.beta2) * (gt_b ** 2)
+            
+            m_b_corrected = self.m_biases[i] / (1 - self.beta1 ** self.t)
+            v_b_corrected = self.v_biases[i] / (1 - self.beta2 ** self.t)
+            
+            self.biases[i] = self.biases[i] - self.learning_rate * m_b_corrected / (np.sqrt(v_b_corrected) + self.adam_epsilon)
+
     # Train y predict
     def train(self, X_train, y_train):
         X_train = np.array(X_train)
@@ -234,8 +272,8 @@ class MultiLayer:
                 self.update_desc_gradient(weights_gradients, biases_gradients)
             elif self.optimization_mode == "momentum":
                 self.update_momentum(weights_gradients, biases_gradients)
-            # elif self.optimization_mode == "adam":
-            #     self.update_adam(weights_gradients, biases_gradients)
+            elif self.optimization_mode == "adam":
+                self.update_adam(weights_gradients, biases_gradients)
             
             # ====== VERIFICAR CONVERGENCIA ======
             self.error_entropy = loss
