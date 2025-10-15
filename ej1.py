@@ -1,5 +1,5 @@
 # ej1
-from ej2.SimplePerceptron import SimplePerceptron
+from SimplePerceptron import SimplePerceptron
 import numpy as np  # ← Agregar esta importación
 
 def main():
