@@ -331,6 +331,66 @@ def error_vs_epochs_run(X_clean, y):
     plt.close()
 
 
+def confusion_matrix_multiple_runs(perceptron, X_clean, y):
+    """
+    Testea la evolución del mismo perceptron con un dígito que no conoce
+    a lo largo de múltiples runs
+    """
+
+    # Crear UN SOLO perceptrón al inicio
+    perceptron = MultiLayer(
+        layers_array=[35, LAYER_ONE_SIZE, LAYER_TWO_SIZE, 10],
+        learning_rate=LEARNING_RATE,
+        epochs=500,  # Este valor lo cambiarás después
+        epsilon=EPSILON,
+        optimization_mode=OPTIMIZATION_MODE,
+        seed=42
+    )
+    perceptron.train(X_train, y_train)
+
+    TIRADAS = 10
+    y_all = []
+    yhat_all = []
+    maes_runs = []
+    acc_runs = []
+
+    # Dividir correctamente train/test (80-20 o 70-30)
+    split_idx = int(0.8 * len(X_clean))  # 80% entrenamiento, 20% prueba
+    X_train = X_clean[:split_idx]
+    y_train = y[:split_idx]
+    X_test = X_clean[split_idx:]
+    y_test = y[split_idx:]
+
+    print(f'TRAIN samples: {len(X_train)}')
+    print(f'TEST samples: {len(X_test)}')
+
+    # Entrenar el MISMO perceptrón múltiples veces y ver su evolución
+    for run in range(TIRADAS):
+        print(f"Run {run + 1}/{TIRADAS}")
+        
+        # Reentrenar el mismo perceptrón (continúa del estado anterior)
+        
+        # Predecir con el modelo actual
+        yhat = perceptron.predict(X_test)
+        # Guardar todas las predicciones para la matriz de confusión
+        y_all.append(yhat)
+        yhat_all.extend(yhat.tolist() if isinstance(yhat, np.ndarray) else list(yhat))
+
+        # Opcional: guardar matriz de confusión intermedia
+        if (run + 1) % 2 == 0:  # Cada 2 runs
+            cm_path = f"{OUT_DIR}/confusion_matrix_epochs_{perceptron.epochs}_run_{run+1}.png"
+            plot_confusion_matrix(y_all, yhat_all, -500, cm_path)
+
+    # Matriz de confusión final
+    cm_path = f"{OUT_DIR}/confusion_matrix_epochs_{perceptron.epochs}_final.png"
+    plot_confusion_matrix(y_all, yhat_all, -500, cm_path)
+    
+    # También mostrar evolución de accuracy
+    print(f"Accuracy por run: {acc_runs}")
+    print(f"MAE por run: {maes_runs}")
+
+
+
 def main():
     try:
 
@@ -358,12 +418,15 @@ def main():
         #     logger.info(f"Esperado: {expected}, Predicho: {predicted}")
 
         logger.info("Testeando modelo...")
-        noise_variation_run(perceptron=perceptron, X_clean=X_clean, y=y)
+        # noise_variation_run(perceptron=perceptron, X_clean=X_clean, y=y)
+        confusion_matrix_multiple_runs(perceptron=perceptron, X_clean=X_clean, y=y)
         logger.info("Finalizando testeo...")
 
         #mse_vs_epochs_run(X_clean, y)
         # error_vs_epochs_run(X_clean, y)
         #noises_error_vs_epochs(X_clean, y)
+
+
 
     except Exception as e:
         logger.error("Ocurrió un error en main: %s", e)
