@@ -1,0 +1,8 @@
+{
+    "nonlinear_learn_rate": 0.05,
+    "epochs": 200,
+    "epsilon": 0.001,
+    "input_file": "data/TP3-ej2-conjunto.csv",
+    "non_linear_beta": 1,
+    "k_values": [2, 4, 7, 14, 28]
+}
