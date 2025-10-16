@@ -6,7 +6,7 @@ import logging as log
 
 from multicapa.multiLayer import MultiLayer
 
-EPOCHS = 20000
+EPOCHS = 5
 
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
@@ -55,7 +55,7 @@ plt.title("Matriz de confusión - MLP MNIST")
 plt.show()
 
 plt.figure()
-plt.plot(range(final_epoch-1), np.full(final_epoch-1, error_entropy_list), label="Error")
+plt.plot(range(len(error_entropy_list)), error_entropy_list, label="Error Entropía")
 plt.xlabel("Épocas")
 plt.ylabel("Error")
 plt.title("Curva de Error")
