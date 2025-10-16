@@ -297,6 +297,10 @@ class MultiLayer:
             self.error_entropy = loss
             self.error_mse = mse_loss
 
+            # =====================================================
+            # = Corrección: BUSCAR early stopping para el epsilon =
+            # =====================================================
+
             # Guardar el mejor error
             if loss < self.error_entropy_min:
                 self.error_entropy_min = loss
